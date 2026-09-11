@@ -1,0 +1,295 @@
+@import "tailwindcss";
+
+/* ZELVOA Design System — single source of truth for all tokens. */
+/* Light mode is the default; the .dark class switches modes. */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* ── Brand palette ─────────────────────────────────── */
+  --primary-50: #f3f1ff;
+  --primary-100: #e9e6ff;
+  --primary-200: #d5cefe;
+  --primary-300: #b6a8fd;
+  --primary-400: #927cfb;
+  --primary-500: #7c63f7;
+  --primary-600: #6d28d9;
+  --primary-700: #5b21b6;
+  --primary-800: #4a1696;
+  --primary-900: #3d1378;
+
+  --secondary-50: #eff6ff;
+  --secondary-100: #dbeafe;
+  --secondary-200: #bfdbfe;
+  --secondary-300: #93c5fd;
+  --secondary-400: #60a5fa;
+  --secondary-500: #2f7df6;
+  --secondary-600: #2563eb;
+  --secondary-700: #1d4ed8;
+  --secondary-800: #1e40af;
+  --secondary-900: #1e3a8a;
+
+  --accent-50: #faf5ff;
+  --accent-100: #f3e8ff;
+  --accent-200: #e9d5ff;
+  --accent-300: #d8b4fe;
+  --accent-400: #c084fc;
+  --accent-500: #a855f7;
+  --accent-600: #9333ea;
+
+  /* ── Semantic surfaces (light) ────────────────────── */
+  --background: #ffffff;
+  --background-subtle: #f8f9fb;
+  --foreground: #1e2536;
+  --card: #ffffff;
+  --card-foreground: #1e2536;
+  --muted: #f1f3f8;
+  --muted-foreground: #616c82;
+  --border: #e4e7ef;
+  --border-strong: #cdd2de;
+  --input: #e4e7ef;
+  --ring: #6d28d9;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --success: #16a34a;
+  --warning: #d97706;
+  --sidebar: #f8f9fb;
+  --sidebar-foreground: #1e2536;
+  --header: rgba(255, 255, 255, 0.8);
+
+  /* ── Typography ───────────────────────────────────── */
+  --font-sans: "Inter", "Segoe UI", "Tajawal", "Noto Sans Arabic", system-ui,
+    -apple-system, "Helvetica Neue", Arial, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-display: clamp(2.25rem, 4vw, 3rem);
+
+  /* ── Radius ───────────────────────────────────────── */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+
+  /* ── Shadows ──────────────────────────────────────── */
+  --shadow-xs: 0 1px 2px rgb(15 23 42 / 0.05);
+  --shadow-sm: 0 1px 3px rgb(15 23 42 / 0.08);
+  --shadow-md: 0 4px 12px -2px rgb(15 23 42 / 0.1);
+  --shadow-lg: 0 12px 32px -8px rgb(15 23 42 / 0.14);
+  --shadow-modal: 0 20px 50px -12px rgb(15 23 42 / 0.25);
+
+  /* ── Transitions ──────────────────────────────────── */
+  --transition-fast: 120ms cubic-bezier(0.2, 0, 0, 1);
+  --transition-base: 180ms cubic-bezier(0.2, 0, 0, 1);
+
+  /* ── Z-index scale ────────────────────────────────── */
+  --z-dropdown: 40;
+  --z-header: 30;
+  --z-modal: 60;
+  --z-toast: 80;
+}
+
+.dark {
+  --background: #0b0e14;
+  --background-subtle: #0e1119;
+  --foreground: #e8eaf1;
+  --card: #11151f;
+  --card-foreground: #e8eaf1;
+  --muted: #171c29;
+  --muted-foreground: #94a0b8;
+  --border: #1f2637;
+  --border-strong: #2c3550;
+  --input: #1f2637;
+  --ring: #7c63f7;
+  --destructive: #f87171;
+  --destructive-foreground: #1e1010;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --sidebar: #0e1119;
+  --sidebar-foreground: #e8eaf1;
+  --header: rgba(11, 14, 20, 0.8);
+
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.6);
+  --shadow-modal: 0 20px 50px -12px rgb(0 0 0 / 0.7);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-background-subtle: var(--background-subtle);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-header: var(--header);
+
+  --font-sans: var(--font-sans);
+
+  --color-primary-50: var(--primary-50);
+  --color-primary-100: var(--primary-100);
+  --color-primary-200: var(--primary-200);
+  --color-primary-300: var(--primary-300);
+  --color-primary-400: var(--primary-400);
+  --color-primary-500: var(--primary-500);
+  --color-primary-600: var(--primary-600);
+  --color-primary-700: var(--primary-700);
+  --color-primary-800: var(--primary-800);
+  --color-primary-900: var(--primary-900);
+
+  --color-secondary-50: var(--secondary-50);
+  --color-secondary-100: var(--secondary-100);
+  --color-secondary-200: var(--secondary-200);
+  --color-secondary-300: var(--secondary-300);
+  --color-secondary-400: var(--secondary-400);
+  --color-secondary-500: var(--secondary-500);
+  --color-secondary-600: var(--secondary-600);
+  --color-secondary-700: var(--secondary-700);
+  --color-secondary-800: var(--secondary-800);
+  --color-secondary-900: var(--secondary-900);
+
+  --color-accent-50: var(--accent-50);
+  --color-accent-100: var(--accent-100);
+  --color-accent-200: var(--accent-200);
+  --color-accent-300: var(--accent-300);
+  --color-accent-400: var(--accent-400);
+  --color-accent-500: var(--accent-500);
+  --color-accent-600: var(--accent-600);
+
+  --color-primary: var(--primary-600);
+  --color-primary-foreground: #ffffff;
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-modal: var(--shadow-modal);
+
+  --transition-fast: var(--transition-fast);
+  --transition-base: var(--transition-base);
+
+  --z-dropdown: var(--z-dropdown);
+  --z-header: var(--z-header);
+  --z-modal: var(--z-modal);
+  --z-toast: var(--z-toast);
+}
+
+/* ── Base ─────────────────────────────────────────────── */
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Arabic (RTL) support — language set on <html lang="ar"> */
+[lang="ar"] {
+  font-family: "Tajawal", "Noto Sans Arabic", var(--font-sans);
+  direction: rtl;
+}
+
+::selection {
+  background: var(--primary-200);
+  color: var(--primary-900);
+}
+
+.dark ::selection {
+  background: var(--primary-800);
+  color: var(--primary-100);
+}
+
+/* ── Focus rings ───────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Scrollbars ───────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 8px;
+  border: 2px solid var(--background);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ── Utility helpers ───────────────────────────────────── */
+
+@layer utilities {
+  .surface-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
