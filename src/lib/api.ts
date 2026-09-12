@@ -42,6 +42,13 @@ export function handleApiError(error: unknown) {
     }
     return fail("Database error.", 500);
   }
+  if (
+    error instanceof Prisma.PrismaClientInitializationError ||
+    error instanceof Prisma.PrismaClientRustPanicError
+  ) {
+    console.error("[api] Database unavailable (Prisma client error).");
+    return fail("Service temporarily unavailable.", 503);
+  }
   console.error("[api]", error);
   return fail("Internal server error.", 500);
 }
