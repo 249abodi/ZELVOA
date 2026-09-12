@@ -2,11 +2,25 @@ import { getRegistryEntry } from "@/lib/integrations/registry";
 import type { Platform, SocialProvider } from "@/lib/integrations/types";
 import { OAuth2SocialProvider } from "@/lib/integrations/oauth-provider";
 import { DevSocialProvider } from "@/lib/integrations/dev-provider";
+import { FacebookProvider, InstagramProvider } from "@/lib/integrations/providers/meta";
+import { LinkedInProvider } from "@/lib/integrations/providers/linkedin";
+import { XProvider } from "@/lib/integrations/providers/x";
 
 export function getProvider(platform: Platform): SocialProvider {
   const entry = getRegistryEntry(platform);
   if (entry.devMode) return new DevSocialProvider(platform);
-  return new OAuth2SocialProvider(platform);
+  switch (platform) {
+    case "FACEBOOK":
+      return new FacebookProvider();
+    case "INSTAGRAM":
+      return new InstagramProvider();
+    case "LINKEDIN":
+      return new LinkedInProvider();
+    case "X":
+      return new XProvider();
+    default:
+      return new OAuth2SocialProvider(platform);
+  }
 }
 
 export function resolveAccountStatus(

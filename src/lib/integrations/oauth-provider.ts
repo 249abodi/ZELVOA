@@ -1,12 +1,17 @@
 import { getPlatformMeta } from "@/lib/integrations/platforms";
 import { getProviderCredentials } from "@/lib/integrations/registry";
-import type {
-  ExchangedToken,
-  Platform,
-  ProviderAccountRecord,
-  RefreshResult,
-  SocialProvider,
+import {
+  accountRecordFromExchange,
+  type ExchangedToken,
+  type Platform,
+  type ProviderAccountRecord,
+  type PublishInput,
+  type PublishResult,
+  type PublishingStatusResult,
+  type RefreshResult,
+  type SocialProvider,
 } from "@/lib/integrations/types";
+import { PublishingError } from "@/lib/publishing/errors";
 
 interface OAuthEndpointConfig {
   authorizationEndpoint: string;
@@ -178,6 +183,35 @@ export class OAuth2SocialProvider implements SocialProvider {
       method: "DELETE",
       headers: { Authorization: `Bearer ${_accessToken}` },
     }).catch(() => undefined);
+  }
+
+  /**
+   * Default account discovery: a single account derived from the exchanged
+   * token. Providers that surface several accounts (Facebook pages, ...) or
+   * resolve the account only after the token exchange override this method.
+   */
+  async getAccounts(exchanged: ExchangedToken): Promise<ProviderAccountRecord[]> {
+    return [accountRecordFromExchange(exchanged, this.platform)];
+  }
+
+  /** @internal Not implemented for platforms that only connect. */
+  async publish(_input: PublishInput): Promise<PublishResult> {
+    throw new PublishingError({
+      code: "NOT_IMPLEMENTED",
+      stage: "PROVIDER_PUBLISH",
+      message: `Publishing is not implemented for ${this.platform}.`,
+      retryable: false,
+    });
+  }
+
+  /** @internal Not implemented for platforms that only connect. */
+  async getPublishingStatus(_providerPostId: string): Promise<PublishingStatusResult> {
+    throw new PublishingError({
+      code: "NOT_IMPLEMENTED",
+      stage: "PROVIDER_PUBLISH",
+      message: "Publishing status is not supported for this platform.",
+      retryable: false,
+    });
   }
 }
 

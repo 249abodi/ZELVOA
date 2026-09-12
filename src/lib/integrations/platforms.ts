@@ -1,6 +1,13 @@
 import type { IconName } from "@/components/icons";
 import type { Platform, ProviderCapabilities } from "@/lib/integrations/types";
 
+export interface PlatformLimits {
+  captionLimit: number;
+  firstCommentLimit: number;
+  mediaRequired: boolean;
+  supportsCarousel: boolean;
+}
+
 export interface PlatformMeta {
   platform: Platform;
   label: string;
@@ -10,6 +17,9 @@ export interface PlatformMeta {
   envClientId: string;
   envClientSecret: string;
   iconClass: string;
+  publishingImplemented: boolean;
+  limits: PlatformLimits;
+  docsUrl: string;
 }
 
 export const PLATFORM_META: Record<Platform, PlatformMeta> = {
@@ -22,6 +32,14 @@ export const PLATFORM_META: Record<Platform, PlatformMeta> = {
     envClientId: "INSTAGRAM_CLIENT_ID",
     envClientSecret: "INSTAGRAM_CLIENT_SECRET",
     iconClass: "bg-accent-100 text-accent-700 dark:bg-accent-900/30 dark:text-accent-300",
+    publishingImplemented: true,
+    limits: {
+      captionLimit: 2200,
+      firstCommentLimit: 2200,
+      mediaRequired: true,
+      supportsCarousel: true,
+    },
+    docsUrl: "https://developers.facebook.com/docs/instagram-platform/content-publishing",
   },
   FACEBOOK: {
     platform: "FACEBOOK",
@@ -32,6 +50,14 @@ export const PLATFORM_META: Record<Platform, PlatformMeta> = {
     envClientId: "FACEBOOK_CLIENT_ID",
     envClientSecret: "FACEBOOK_CLIENT_SECRET",
     iconClass: "bg-secondary-100 text-secondary-700 dark:bg-secondary-900/30 dark:text-secondary-300",
+    publishingImplemented: true,
+    limits: {
+      captionLimit: 63206,
+      firstCommentLimit: 2200,
+      mediaRequired: false,
+      supportsCarousel: true,
+    },
+    docsUrl: "https://developers.facebook.com/docs/graph-api/reference/v18.0/page/feed",
   },
   TIKTOK: {
     platform: "TIKTOK",
@@ -42,6 +68,14 @@ export const PLATFORM_META: Record<Platform, PlatformMeta> = {
     envClientId: "TIKTOK_CLIENT_ID",
     envClientSecret: "TIKTOK_CLIENT_SECRET",
     iconClass: "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-200",
+    publishingImplemented: false,
+    limits: {
+      captionLimit: 2200,
+      firstCommentLimit: 0,
+      mediaRequired: true,
+      supportsCarousel: false,
+    },
+    docsUrl: "https://developers.tiktok.com/doc/content-posting-api-get-started",
   },
   LINKEDIN: {
     platform: "LINKEDIN",
@@ -52,6 +86,14 @@ export const PLATFORM_META: Record<Platform, PlatformMeta> = {
     envClientId: "LINKEDIN_CLIENT_ID",
     envClientSecret: "LINKEDIN_CLIENT_SECRET",
     iconClass: "bg-secondary-100 text-secondary-800 dark:bg-secondary-900/30 dark:text-secondary-300",
+    publishingImplemented: true,
+    limits: {
+      captionLimit: 3000,
+      firstCommentLimit: 0,
+      mediaRequired: false,
+      supportsCarousel: false,
+    },
+    docsUrl: "https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api",
   },
   X: {
     platform: "X",
@@ -62,6 +104,14 @@ export const PLATFORM_META: Record<Platform, PlatformMeta> = {
     envClientId: "X_CLIENT_ID",
     envClientSecret: "X_CLIENT_SECRET",
     iconClass: "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-200",
+    publishingImplemented: true,
+    limits: {
+      captionLimit: 280,
+      firstCommentLimit: 0,
+      mediaRequired: false,
+      supportsCarousel: false,
+    },
+    docsUrl: "https://developer.x.com/en/docs/x-api/tweets/manage-tweets",
   },
   YOUTUBE: {
     platform: "YOUTUBE",
@@ -72,6 +122,14 @@ export const PLATFORM_META: Record<Platform, PlatformMeta> = {
     envClientId: "YOUTUBE_CLIENT_ID",
     envClientSecret: "YOUTUBE_CLIENT_SECRET",
     iconClass: "bg-destructive/10 text-destructive dark:bg-destructive/20",
+    publishingImplemented: false,
+    limits: {
+      captionLimit: 5000,
+      firstCommentLimit: 0,
+      mediaRequired: true,
+      supportsCarousel: false,
+    },
+    docsUrl: "https://developers.google.com/youtube/v3/docs/videos/insert",
   },
 };
 
@@ -81,4 +139,12 @@ export function getPlatformMeta(platform: Platform): PlatformMeta {
 
 export function getCapabilities(platform: Platform): ProviderCapabilities {
   return PLATFORM_META[platform].capabilities;
+}
+
+export function getPlatformLimits(platform: Platform): PlatformLimits {
+  return PLATFORM_META[platform].limits;
+}
+
+export function isPublishingImplemented(platform: Platform): boolean {
+  return PLATFORM_META[platform].publishingImplemented;
 }

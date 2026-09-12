@@ -16,6 +16,7 @@ interface PostEditorProps {
   initialTitle?: string;
   initialContent?: string;
   initialType?: string;
+  captionLimit?: number;
   onChange: (data: { title: string; content: string; postType: string }) => void;
 }
 
@@ -23,6 +24,7 @@ export function PostEditor({
   initialTitle = "",
   initialContent = "",
   initialType = "STANDARD",
+  captionLimit = 2200,
   onChange,
 }: PostEditorProps) {
   const [title, setTitle] = useState(initialTitle);
@@ -65,10 +67,10 @@ export function PostEditor({
           <span
             className={cn(
               "text-xs",
-              content.length > 2200 ? "text-warning" : "text-muted-foreground"
+              content.length > captionLimit ? "text-warning" : "text-muted-foreground"
             )}
           >
-            {content.length} / 2200
+            {content.length} / {captionLimit}
           </span>
         </div>
         <textarea
@@ -85,6 +87,12 @@ export function PostEditor({
         <p className="mt-1 text-xs text-muted-foreground">
           This will be used as the default copy across selected platforms.
         </p>
+        {content.length > captionLimit && (
+          <p className="mt-1 text-xs text-warning">
+            Exceeds the character limit of one of your selected platforms. Publishing will be
+            rejected by the provider adapter.
+          </p>
+        )}
       </div>
 
       <div>

@@ -3,6 +3,7 @@ import { getCurrentContext } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { createPostSchema } from "@/lib/validators";
 import { handleApiError, fail, forbidden, unauthorized, ok, created, parseJson } from "@/lib/api";
+import { createNotification } from "@/lib/notifications/service";
 
 export async function GET(request: Request) {
   try {
@@ -136,6 +137,32 @@ export async function POST(request: Request) {
           scheduledFor: scheduledDate,
           idempotencyKey: `${post.id}-${account.id}-${scheduledDate.getTime()}`,
         })),
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          organizationId: context.organization?.id,
+          workspaceId,
+          actorId: context.user.id,
+          action: "post.scheduled",
+          entityType: "Post",
+          postId: post.id,
+          entityId: post.id,
+          metadata: {
+            title: post.title,
+            scheduledFor: scheduledDate.toISOString(),
+            targetCount: accounts.length,
+          } as never,
+        },
+      });
+
+      await createNotification({
+        workspaceId,
+        userId: context.user.id,
+        type: "POST_SCHEDULED",
+        title: "Post scheduled",
+        body: scheduledDate.toISOString(),
+        data: { postId: post.id, scheduledFor: scheduledDate.toISOString() } as never,
       });
     }
 

@@ -2,15 +2,18 @@
 
 import { Icon, type IconName } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
+import { PLATFORM_META } from "@/lib/integrations/platforms";
 import { cn } from "@/lib/utils";
+import type { Platform } from "@/lib/integrations/types";
 
 export interface PostAccount {
   id: string;
-  platform: "INSTAGRAM" | "FACEBOOK" | "TIKTOK" | "LINKEDIN" | "X";
+  platform: string;
   name: string;
   username: string | null;
   avatarUrl: string | null;
   status: string;
+  isDev: boolean;
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -66,13 +69,16 @@ export function PlatformSelector({
       <div className="grid gap-2 sm:grid-cols-2">
         {accounts.map((account) => {
           const isSelected = selected.includes(account.id);
+          const meta = PLATFORM_META[account.platform as Platform] ?? PLATFORM_META.INSTAGRAM;
+          const publishingBlocked = !meta.publishingImplemented && !account.isDev;
           return (
             <button
               key={account.id}
               type="button"
+              disabled={publishingBlocked}
               onClick={() => toggle(account.id)}
               className={cn(
-                "flex items-center gap-3 rounded-xl border p-3 text-left transition-colors",
+                "flex items-center gap-3 rounded-xl border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
                 isSelected
                   ? "border-primary bg-primary-50 dark:bg-primary-900/20"
                   : "border-border hover:border-border-strong hover:bg-muted"
@@ -88,20 +94,34 @@ export function PlatformSelector({
                   {account.username ? ` \u00b7 @${account.username}` : ""}
                 </p>
               </div>
-              <span
-                className={cn(
-                  "flex h-5 w-5 items-center justify-center rounded-full border transition-colors",
-                  isSelected
-                    ? "border-primary bg-primary text-white"
-                    : "border-border-strong"
-                )}
-              >
-                {isSelected && <Icon name="check" size={12} strokeWidth={3} />}
-              </span>
+              {publishingBlocked ? (
+                <Badge variant="secondary">Publishing in development</Badge>
+              ) : (
+                <span
+                  className={cn(
+                    "flex h-5 w-5 items-center justify-center rounded-full border transition-colors",
+                    isSelected
+                      ? "border-primary bg-primary text-white"
+                      : "border-border-strong"
+                  )}
+                >
+                  {isSelected && <Icon name="check" size={12} strokeWidth={3} />}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
+      {accounts.some(
+        (a) =>
+          !(PLATFORM_META[a.platform as Platform] ?? PLATFORM_META.INSTAGRAM)
+            .publishingImplemented && !a.isDev
+      ) && (
+        <p className="text-xs text-muted-foreground">
+          Accounts marked “Publishing in development” cannot be selected yet. Their provider
+          adapter is not implemented.
+        </p>
+      )}
       <div className="flex flex-wrap gap-1.5">
         {selected.slice(0, 3).map((id) => {
           const account = accounts.find((a) => a.id === id);

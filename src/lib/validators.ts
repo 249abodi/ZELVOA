@@ -237,3 +237,24 @@ export const updateAccountSchema = z.object({
   name: z.string().min(1).max(120).optional(),
   username: z.string().max(120).nullable().optional(),
 });
+
+export const publishPostSchema = z.object({
+  socialAccountIds: z.array(z.string().min(1)).min(1).optional(),
+});
+
+export const schedulerRunSchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+});
+
+export const notificationsListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+});
+
+export const notificationsMarkReadSchema = z
+  .object({
+    ids: z.array(z.string().min(1)).optional(),
+    all: z.boolean().optional(),
+  })
+  .refine((data) => data.ids || data.all, {
+    message: "Provide at least one notification id or use all.",
+  });

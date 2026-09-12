@@ -4,6 +4,10 @@ import { getPlatformBaseUrl } from "@/lib/integrations/registry";
 import type {
   ExchangedToken,
   Platform,
+  ProviderAccountRecord,
+  PublishInput,
+  PublishResult,
+  PublishingStatusResult,
   RefreshResult,
   SocialProvider,
 } from "@/lib/integrations/types";
@@ -77,5 +81,44 @@ export class DevSocialProvider implements SocialProvider {
 
   async revoke(): Promise<void> {
     return;
+  }
+
+  async getAccounts(exchanged: ExchangedToken): Promise<ProviderAccountRecord[]> {
+    return [
+      {
+        platform: this.platform,
+        platformAccountId: exchanged.platformAccountId,
+        name: exchanged.name,
+        username: exchanged.username ?? null,
+        avatarUrl: exchanged.avatarUrl ?? null,
+        scopes: markDev(exchanged.scopes ?? []),
+        status: "CONNECTED",
+        token: {
+          accessToken: exchanged.accessToken,
+          refreshToken: exchanged.refreshToken,
+          expiresInSeconds: exchanged.expiresInSeconds,
+          scopes: markDev(exchanged.scopes ?? []),
+          platformAccountId: exchanged.platformAccountId,
+          name: exchanged.name,
+          username: exchanged.username ?? null,
+          avatarUrl: null,
+        },
+        isDevProvider: true,
+      },
+    ];
+  }
+
+  async publish(input: PublishInput): Promise<PublishResult> {
+    const id = `dev-${randomBytes(12).toString("hex")}`;
+    return {
+      providerPostId: id,
+      url: null,
+      publishedAt: new Date().toISOString(),
+      raw: { dev: true, platform: this.platform, accountId: input.platformAccountId },
+    };
+  }
+
+  async getPublishingStatus(_providerPostId: string): Promise<PublishingStatusResult> {
+    return { status: "PUBLISHED" };
   }
 }

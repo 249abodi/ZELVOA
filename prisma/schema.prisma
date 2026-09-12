@@ -95,11 +95,14 @@ enum ApprovalActionType {
 
 enum NotificationType {
   APPROVAL_REQUEST
+  POST_SCHEDULED
   POST_PUBLISHED
   POST_FAILED
   SCHEDULED_REMINDER
   TEAM_INVITATION
+  ACCOUNT_CONNECTED
   ACCOUNT_DISCONNECTED
+  TOKEN_EXPIRING
   SUBSCRIPTION_EVENT
 }
 
@@ -450,8 +453,10 @@ model ScheduledPost {
   nextAttemptAt DateTime?
   idempotencyKey String             @unique
   providerJobId String?
+  errorCode     String?
   errorMessage  String?
   errorStage    PublishErrorStage?
+  lastAttemptAt DateTime?
   publishedAt   DateTime?
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt

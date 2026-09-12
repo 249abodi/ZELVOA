@@ -10,6 +10,8 @@ import { useToast } from "@/components/ui/toast";
 import { PostEditor } from "@/components/posts/post-editor";
 import { PlatformSelector, type PostAccount } from "@/components/posts/post-platform-selector";
 import { PostMediaPicker } from "@/components/posts/post-media-picker";
+import { getPlatformLimits } from "@/lib/integrations/platforms";
+import type { Platform } from "@/lib/integrations/types";
 
 interface LoadedPost {
   id: string;
@@ -22,7 +24,7 @@ interface LoadedPost {
 }
 
 export default function CreatePostPage() {
-  const { toastSuccess, toastError } = useToast();
+  const { toastSuccess, toastError, toastInfo } = useToast();
   const [accounts, setAccounts] = useState<PostAccount[]>([]);
   const [accountsLoaded, setAccountsLoaded] = useState(false);
   const [accountsError, setAccountsError] = useState(false);
@@ -34,6 +36,7 @@ export default function CreatePostPage() {
   const [selectedMedia, setSelectedMedia] = useState<string[]>([]);
   const [scheduledFor, setScheduledFor] = useState("");
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   const editingPostId = useState(() => {
     if (typeof window === "undefined") return null;
@@ -112,10 +115,18 @@ export default function CreatePostPage() {
 
   const canSubmit = selectedAccounts.length > 0 && content.trim().length > 0;
 
-  const save = async (scheduled: boolean) => {
+  const captionLimit = (() => {
+    const limits = selectedAccounts
+      .map((id) => accounts.find((a) => a.id === id)?.platform as Platform | undefined)
+      .filter((p): p is Platform => Boolean(p))
+      .map((p) => getPlatformLimits(p).captionLimit);
+    return limits.length > 0 ? Math.min(...limits) : 2200;
+  })();
+
+  const save = async (scheduled: boolean, silent = false): Promise<string | null> => {
     if (!canSubmit) {
       toastError("Cannot save", "Add content and select at least one platform.");
-      return;
+      return null;
     }
 
     setSaving(true);
@@ -138,17 +149,83 @@ export default function CreatePostPage() {
       if (!res.ok) {
         const err = await res.json().catch(() => null);
         toastError("Save failed", err?.error?.message ?? "Could not save your post.");
+        return null;
+      }
+
+      const data = (await res.json().catch(() => null)) as { data?: { id?: string } } | null;
+      const savedId = data?.data?.id ?? null;
+
+      if (!silent) {
+        toastSuccess(
+          scheduled
+            ? "Post scheduled"
+            : editingPostId
+              ? "Draft updated"
+              : "Draft saved",
+          scheduled ? "Your post has been scheduled." : "You can come back and finish it anytime."
+        );
+      }
+
+      if (!editingPostId) {
+        setTitle("");
+        setContent("");
+        setScheduledFor("");
+        setSelectedMedia([]);
+      }
+
+      return savedId;
+    } catch {
+      toastError("Save failed", "Could not save your post.");
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const publishNow = async () => {
+    if (!canSubmit) {
+      toastError("Cannot publish", "Add content and select at least one platform.");
+      return;
+    }
+
+    setPublishing(true);
+    try {
+      const savedId = await save(false, true);
+      if (!savedId) return;
+
+      const res = await fetch(`/api/v1/posts/${savedId}/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ socialAccountIds: selectedAccounts }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        data?: { targetCount?: number; outcomes?: { status?: string; errorCode?: string }[] };
+        error?: { message?: string };
+      } | null;
+
+      if (!res.ok) {
+        toastError("Publish failed", data?.error?.message ?? "Could not publish the post.");
         return;
       }
 
-      toastSuccess(
-        scheduled
-          ? "Post scheduled"
-          : editingPostId
-            ? "Draft updated"
-            : "Draft saved",
-        scheduled ? "Your post has been scheduled." : "You can come back and finish it anytime."
-      );
+      const outcomes = data?.data?.outcomes ?? [];
+      const publishedCount = outcomes.filter((o) => o.status === "PUBLISHED").length;
+      const failedCount = outcomes.filter((o) => o.status !== "PUBLISHED").length;
+
+      if (publishedCount > 0 && failedCount === 0) {
+        toastSuccess(
+          "Post published",
+          `Published to ${publishedCount} platform${publishedCount > 1 ? "s" : ""}.`
+        );
+      } else if (publishedCount > 0) {
+        toastInfo(
+          "Partially published",
+          `${publishedCount} published, ${failedCount} need${failedCount === 1 ? "s" : ""} attention.`
+        );
+      } else {
+        const first = outcomes[0]?.errorCode;
+        toastError("Publish failed", first ? `Code: ${first}` : "Could not publish the post.");
+      }
 
       if (!editingPostId) {
         setTitle("");
@@ -157,9 +234,9 @@ export default function CreatePostPage() {
         setSelectedMedia([]);
       }
     } catch {
-      toastError("Save failed", "Could not save your post.");
+      toastError("Publish failed", "Could not publish the post.");
     } finally {
-      setSaving(false);
+      setPublishing(false);
     }
   };
 
@@ -188,6 +265,7 @@ export default function CreatePostPage() {
                   initialTitle={title}
                   initialContent={content}
                   initialType={postType}
+                  captionLimit={captionLimit}
                   onChange={handleEditorChange}
                 />
               </CardContent>
@@ -234,6 +312,14 @@ export default function CreatePostPage() {
 
                 <div className="grid gap-2">
                   <Button
+                    onClick={() => save(true)}
+                    loading={publishing || saving}
+                    disabled={!canSubmit}
+                    icon="calendar-dot"
+                  >
+                    Schedule
+                  </Button>
+                  <Button
                     onClick={() => save(false)}
                     loading={saving}
                     disabled={!canSubmit}
@@ -243,12 +329,12 @@ export default function CreatePostPage() {
                     {editingPostId ? "Update draft" : "Save draft"}
                   </Button>
                   <Button
-                    onClick={() => save(true)}
-                    loading={saving}
+                    onClick={() => publishNow()}
+                    loading={publishing}
                     disabled={!canSubmit}
-                    icon="calendar-dot"
+                    icon="zap"
                   >
-                    Schedule
+                    Publish now
                   </Button>
                   <p className="text-center text-xs text-muted-foreground">
                     Publishing goes live when provider integrations are enabled.

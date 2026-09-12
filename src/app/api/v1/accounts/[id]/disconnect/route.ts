@@ -5,6 +5,7 @@ import { handleApiError, fail, unauthorized, forbidden, notFound, ok } from "@/l
 import { getProvider } from "@/lib/integrations/factory";
 import { decryptSecret } from "@/lib/crypto";
 import { writeAudit } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications/service";
 
 export async function POST(
   request: Request,
@@ -53,6 +54,15 @@ export async function POST(
       entityType: "SocialAccount",
       entityId: id,
       metadata: { platform: account.platform },
+    });
+
+    await createNotification({
+      workspaceId: context.workspace.id,
+      userId: context.user.id,
+      type: "ACCOUNT_DISCONNECTED",
+      title: `${account.platform} disconnected`,
+      body: account.name,
+      data: { type: "account", platform: account.platform, socialAccountId: id } as never,
     });
 
     return ok({ disconnected: true });

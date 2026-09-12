@@ -6,6 +6,7 @@ import { getProvider } from "@/lib/integrations/factory";
 import { encryptSecret } from "@/lib/crypto";
 import { markDev, isDevMarkerScope } from "@/lib/integrations/dev-provider";
 import { writeAudit } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications/service";
 import { assessOAuthState, buildAccountsRedirect } from "@/lib/integrations/oauth";
 
 function redirectToApp(state: string, error?: string) {
@@ -71,86 +72,115 @@ export async function GET(request: Request) {
       record.redirectUri
     );
 
-    const now = new Date();
-    const expiresAt = exchanged.expiresInSeconds
-      ? new Date(now.getTime() + exchanged.expiresInSeconds * 1000)
-      : null;
+    const discoveries =
+      typeof provider.getAccounts === "function"
+        ? await provider.getAccounts(exchanged)
+        : [];
 
-    const exchangedScopes = exchanged.scopes ?? [];
+    if (!Array.isArray(discoveries) || discoveries.length === 0) {
+      return redirectToApp(body.state, "no_accounts_discovered");
+    }
+
+    const now = new Date();
+    const exchangedScopes = discoveries[0].scopes ?? exchanged.scopes ?? [];
     const isDev = provider.isDevProvider || isDevMarkerScope(exchangedScopes);
-    const scopes = isDev ? markDev(exchangedScopes) : exchangedScopes;
+    const scopesToStore = isDev ? markDev(exchangedScopes) : exchangedScopes;
 
     const result = await prisma.$transaction(async (tx) => {
-      const account = await tx.socialAccount.upsert({
-        where: {
-          workspaceId_platform_platformAccountId: {
+      const created: Array<{ id: string; platform: string }> = [];
+      for (const discovered of discoveries) {
+        if (!discovered.platformAccountId || !discovered.token?.accessToken) continue;
+        const expiresAt = discovered.token.expiresInSeconds
+          ? new Date(now.getTime() + discovered.token.expiresInSeconds * 1000)
+          : null;
+
+        const account = await tx.socialAccount.upsert({
+          where: {
+            workspaceId_platform_platformAccountId: {
+              workspaceId: record.workspaceId,
+              platform: record.platform,
+              platformAccountId: discovered.platformAccountId,
+            },
+          },
+          create: {
             workspaceId: record.workspaceId,
             platform: record.platform,
-            platformAccountId: exchanged.platformAccountId,
+            platformAccountId: discovered.platformAccountId,
+            name: discovered.name,
+            username: discovered.username,
+            avatarUrl: discovered.avatarUrl,
+            status: "CONNECTED",
+            scopes: scopesToStore,
+            lastSyncAt: now,
           },
-        },
-        create: {
-          workspaceId: record.workspaceId,
-          platform: record.platform,
-          platformAccountId: exchanged.platformAccountId,
-          name: exchanged.name,
-          username: exchanged.username,
-          avatarUrl: exchanged.avatarUrl,
-          status: "CONNECTED",
-          scopes,
-          lastSyncAt: now,
-        },
-        update: {
-          name: exchanged.name,
-          username: exchanged.username,
-          avatarUrl: exchanged.avatarUrl,
-          status: "CONNECTED",
-          scopes,
-          lastSyncAt: now,
-        },
-      });
+          update: {
+            name: discovered.name,
+            username: discovered.username,
+            avatarUrl: discovered.avatarUrl,
+            status: "CONNECTED",
+            scopes: scopesToStore,
+            lastSyncAt: now,
+          },
+        });
 
-      await tx.socialAccountToken.upsert({
-        where: { socialAccountId: account.id },
-        create: {
-          socialAccountId: account.id,
-          encryptedAccessToken: encryptSecret(exchanged.accessToken),
-          encryptedRefreshToken: exchanged.refreshToken
-            ? encryptSecret(exchanged.refreshToken)
-            : null,
-          tokenExpiresAt: expiresAt,
-          scopes,
-          createdById: context.user.id,
-        },
-        update: {
-          encryptedAccessToken: encryptSecret(exchanged.accessToken),
-          encryptedRefreshToken: exchanged.refreshToken
-            ? encryptSecret(exchanged.refreshToken)
-            : null,
-          tokenExpiresAt: expiresAt,
-          scopes,
-        },
-      });
+        await tx.socialAccountToken.upsert({
+          where: { socialAccountId: account.id },
+          create: {
+            socialAccountId: account.id,
+            encryptedAccessToken: encryptSecret(discovered.token.accessToken),
+            encryptedRefreshToken: discovered.token.refreshToken
+              ? encryptSecret(discovered.token.refreshToken)
+              : null,
+            tokenExpiresAt: expiresAt,
+            scopes: scopesToStore,
+            createdById: context.user.id,
+          },
+          update: {
+            encryptedAccessToken: encryptSecret(discovered.token.accessToken),
+            encryptedRefreshToken: discovered.token.refreshToken
+              ? encryptSecret(discovered.token.refreshToken)
+              : null,
+            tokenExpiresAt: expiresAt,
+            scopes: scopesToStore,
+          },
+        });
+
+        created.push({ id: account.id, platform: account.platform });
+      }
+
+      if (created.length === 0) {
+        throw new Error("OAuth flow completed but no accounts could be stored.");
+      }
 
       await tx.oAuthState.update({
         where: { id: record.id },
         data: { consumedAt: now },
       });
 
-      return account;
+      return created;
     });
 
-    await writeAudit({
-      organizationId: record.organizationId,
-      workspaceId: record.workspaceId,
-      actorId: context.user.id,
-      socialAccountId: result.id,
-      action: "account.connected",
-      entityType: "SocialAccount",
-      entityId: result.id,
-      metadata: { platform: result.platform, isDev },
-      ipAddress: request.headers.get("x-forwarded-for") ?? null,
-    });
+    for (const account of result) {
+      await writeAudit({
+        organizationId: record.organizationId,
+        workspaceId: record.workspaceId,
+        actorId: context.user.id,
+        socialAccountId: account.id,
+        action: "account.connected",
+        entityType: "SocialAccount",
+        entityId: account.id,
+        metadata: { platform: account.platform, isDev },
+        ipAddress: request.headers.get("x-forwarded-for") ?? null,
+      });
+      await createNotification({
+        workspaceId: record.workspaceId,
+        userId: context.user.id,
+        type: "ACCOUNT_CONNECTED",
+        title: `${account.platform} connected`,
+        body: account.platform,
+        data: { type: "account", platform: account.platform, socialAccountId: account.id } as never,
+      });
+    }
 
     return redirectToApp(body.state, isDev ? "connected_dev" : undefined);
   } catch (error) {

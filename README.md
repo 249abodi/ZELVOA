@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ZELVOA
 
-## Getting Started
+Production-ready Social Media Management SaaS built with Next.js 16, Prisma, PostgreSQL, Tailwind CSS v4, and JWT auth.
 
-First, run the development server:
+## Stack
+
+- **Framework**: Next.js 16 (App Router) + React 19 + TypeScript
+- **Database**: PostgreSQL via Prisma ORM
+- **Auth**: JWT sessions (`zelvoa_session` cookie), RBAC roles (OWNER, ADMIN, CONTENT_MANAGER, DESIGNER, SOCIAL_MEDIA_MANAGER, VIEWER)
+- **Styling**: Tailwind CSS v4 with a single design-token system in `src/app/globals.css`
+- **Icons**: centralized SVG system in `src/components/icons.tsx` (no icon libraries)
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run db:generate      # Prisma client
+npm run db:push          # sync schema to local dev DB
+npm run db:seed          # seed plans
+npm run dev              # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Local PostgreSQL runs on port **8080** (not 5432). See `.env.example` for the required environment variables.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Commands
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev          # dev server
+npm run build        # production build
+npm run lint         # ESLint
+npm run typecheck    # tsc --noEmit
+npm run test         # Vitest
+npm run db:migrate   # create/apply a migration
+```
 
-## Learn More
+## Social integrations
 
-To learn more about Next.js, take a look at the following resources:
+ZELVOA connects external platforms through OAuth2.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Provider registry** (`src/lib/integrations/platforms.ts`, `registry.ts`) exposes per-platform configuration status. A platform is only shown as available once its credentials are set in the environment.
+- **Publishing adapters** implement `publish`/`getAccounts`/`getPublishingStatus`: Facebook Pages and Instagram (Meta Graph API), LinkedIn (`/rest/shares`, text-only), and X (`/2/tweets`, text-only). TikTok and YouTube publishing is not implemented yet and is surfaced honestly as "in development".
+- **Publishing service** (`src/lib/publishing/service.ts`) claims due jobs atomically, applies platform limits, signs media URLs, retries with exponential backoff, and records safe error codes — raw provider errors are never stored.
+- **Scheduler** (`/api/v1/scheduler/run`) pumps due jobs. It is protected by `CRON_SECRET` and wired to a Vercel Cron (`vercel.json`) that sends `Authorization: Bearer <CRON_SECRET>`.
+- **Notifications** (`/api/v1/notifications`) surface account connections, token expirations, and publishing outcomes in the header bell.
+- **Development providers**: `ALLOW_DEV_PROVIDERS=true` enables a built-in mock provider for local workflows. It is never enabled in production.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Rules
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- No fake integrations: an API that is not connected shows "coming soon" or "in development".
+- No mock data in production.
+- Multi-tenant: records are scoped by `organizationId` and `workspaceId`; the backend enforces RBAC on every route.
+- Provider tokens are encrypted at rest (`ENCRYPTION_KEY`) and never returned by the API.

@@ -14,6 +14,7 @@ interface StatusProvider {
   label: string;
   icon: IconName;
   capabilities: string[];
+  publishingImplemented: boolean;
 }
 
 interface StatusResponse {
@@ -188,6 +189,22 @@ export function ConnectAccountModal({
                 )}
               </div>
               <p className="mt-2 text-sm text-muted-foreground">{provider.reason}</p>
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Badge
+                  variant={provider.publishingImplemented ? "success" : "secondary"}
+                  dot={provider.publishingImplemented}
+                >
+                  {provider.publishingImplemented
+                    ? "Publishing ready"
+                    : "Publishing in development"}
+                </Badge>
+                {!provider.publishingImplemented && !provider.devMode && (
+                  <span className="text-xs text-muted-foreground">
+                    Publishing to this platform is not available yet.
+                  </span>
+                )}
+              </div>
 
               {provider.devMode && !connectError && (
                 <p className="mt-3 rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">

@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Icon, type IconName } from "@/components/icons";
+import { Icon } from "@/components/icons";
 import { EmptyState, LoadingState, ErrorState } from "@/components/ui/states";
 import { Badge } from "@/components/ui/badge";
 import { ConnectAccountModal } from "@/components/accounts/connect-modal";
 import { AccountDetailModal, type AccountSummary } from "@/components/accounts/account-detail-modal";
 import { useToast } from "@/components/ui/toast";
+import { PLATFORM_META } from "@/lib/integrations/platforms";
+import type { Platform } from "@/lib/integrations/types";
 
 interface Notify {
   kind: "connected" | "error";
@@ -200,7 +202,8 @@ function AccountCard({
   account: AccountSummary;
   onOpen: () => void;
 }) {
-  const meta = platformMeta[account.platform] ?? platformMeta.INSTAGRAM;
+  const meta = PLATFORM_META[account.platform as Platform] ?? PLATFORM_META.INSTAGRAM;
+  const publishingBlocked = !meta.publishingImplemented && !account.isDev;
   const statusLabel =
     account.status === "CONNECTED"
       ? account.token?.expired
@@ -212,7 +215,7 @@ function AccountCard({
 
   return (
     <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-xs">
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${meta.cls}`}>
+      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${meta.iconClass}`}>
         <Icon name={meta.icon} size={22} />
       </div>
       <div className="min-w-0 flex-1">
@@ -225,7 +228,7 @@ function AccountCard({
         <p className="truncate text-xs text-muted-foreground">
           {account.username ?? meta.label}
         </p>
-        <div className="mt-1.5">
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           <Badge
             variant={
               account.token?.expired
@@ -238,6 +241,9 @@ function AccountCard({
           >
             {statusLabel}
           </Badge>
+          {publishingBlocked && (
+            <Badge variant="secondary">Publishing in development</Badge>
+          )}
         </div>
       </div>
       <div className="shrink-0">
@@ -246,12 +252,3 @@ function AccountCard({
     </div>
   );
 }
-
-const platformMeta: Record<string, { icon: IconName; cls: string; label: string }> = {
-  INSTAGRAM: { icon: "instagram", label: "Instagram", cls: "bg-accent-100 text-accent-700 dark:bg-accent-900/30 dark:text-accent-300" },
-  FACEBOOK: { icon: "facebook", label: "Facebook", cls: "bg-secondary-100 text-secondary-700 dark:bg-secondary-900/30 dark:text-secondary-300" },
-  TIKTOK: { icon: "tiktok", label: "TikTok", cls: "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-200" },
-  LINKEDIN: { icon: "linkedin", label: "LinkedIn", cls: "bg-secondary-100 text-secondary-800 dark:bg-secondary-900/30 dark:text-secondary-300" },
-  X: { icon: "xtwitter", label: "X", cls: "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-200" },
-  YOUTUBE: { icon: "youtube", label: "YouTube", cls: "bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive" },
-};

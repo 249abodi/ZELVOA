@@ -78,3 +78,15 @@ export function safeEqual(a: string, b: string): boolean {
   if (ba.length !== bb.length) return false;
   return timingSafeEqual(ba, bb);
 }
+
+export function signMediaUrl(assetId: string, expiresAtMs: number): string {
+  return `${expiresAtMs}.${createSignature(`${assetId}:${expiresAtMs}`)}`;
+}
+
+export function verifyMediaSignature(assetId: string, signature: string): boolean {
+  const [expiresAt, mac] = signature.split(".");
+  if (!expiresAt || !mac) return false;
+  const ms = Number(expiresAt);
+  if (!Number.isFinite(ms) || ms < Date.now()) return false;
+  return safeEqual(createSignature(`${assetId}:${expiresAt}`), mac);
+}

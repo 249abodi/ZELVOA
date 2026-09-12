@@ -23,6 +23,7 @@ export async function GET() {
         label: PLATFORM_META[entry.platform].label,
         icon: PLATFORM_META[entry.platform].icon,
         capabilities: PLATFORM_META[entry.platform].capabilities,
+        publishingImplemented: PLATFORM_META[entry.platform].publishingImplemented,
       })),
     });
   } catch (error) {

@@ -12,6 +12,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/icons";
 import { useToast } from "@/components/ui/toast";
 import { MobileNav } from "@/components/app/mobile-nav";
+import { Notifications } from "@/components/app/notifications";
 
 export function Header({
   userName,
@@ -44,15 +45,7 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-1.5">
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Notifications"
-          className="relative text-muted-foreground"
-        >
-          <Icon name="bell" size={18} />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
-        </Button>
+        <Notifications />
 
         <Dropdown
           width="w-64"
