@@ -1,18 +1,9 @@
-import { PhasePlaceholder } from "@/components/app/page-header";
+import { getCurrentContext } from "@/lib/auth";
+import { can } from "@/lib/rbac";
+import ApprovalsPageClient from "@/components/approvals/approvals-page";
 
-export default function ApprovalsPage() {
-  return (
-    <PhasePlaceholder
-      phase="Phase 6 — Team"
-      title="Approvals"
-      description="Professional approval workflow with full audit records."
-      icon="approvals"
-      plannedFeatures={[
-        "Flow: draft → pending approval → manager review → approved → scheduled → published",
-        "Rejection path: pending approval → changes requested → draft",
-        "Every approval action creates an audit record",
-        "Role-based approval permissions enforced on the backend",
-      ]}
-    />
-  );
+export default async function ApprovalsPage() {
+  const context = await getCurrentContext();
+  const canApprove = can(context?.role, "post.approve");
+  return <ApprovalsPageClient canApprove={canApprove} />;
 }

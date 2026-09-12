@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { LogoMark } from "@/components/icons";
+import { ZelvoaLogo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
@@ -29,10 +29,12 @@ export function AuthShell({
       <div className="absolute right-4 top-4">
         <ThemeToggle />
       </div>
-      <Link href="/" className="mb-8 flex items-center gap-2.5">
-        <LogoMark size={34} />
-        <span className="text-xl font-bold tracking-tight">ZELVOA</span>
+      <Link href="/" className="mb-4 flex items-center justify-center">
+        <ZelvoaLogo variant="full" size={36} />
       </Link>
+      <p className="mb-8 select-none text-center text-sm font-medium text-brand-muted">
+        Create. Schedule. Grow.
+      </p>
       <div className="w-full max-w-md">
         <div className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight">{title}</h1>

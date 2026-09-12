@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogoMark } from "@/components/icons";
+import { ZelvoaLogo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const links = [
@@ -15,8 +15,7 @@ export function SiteNav() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2.5">
-          <LogoMark size={30} />
-          <span className="text-lg font-bold tracking-tight">ZELVOA</span>
+          <ZelvoaLogo variant="full" size={30} />
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">

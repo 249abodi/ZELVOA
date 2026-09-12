@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LogoMark, Icon } from "@/components/icons";
+import { Icon } from "@/components/icons";
+import { ZelvoaLogo } from "@/components/brand/logo";
 import { mainNav, managementNav, type NavItem } from "@/components/app/sidebar";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -38,8 +39,7 @@ export function MobileNav() {
           <div className="fixed inset-y-0 left-0 flex w-72 flex-col bg-card shadow-lg animate-in slide-in-from-left">
             <div className="flex h-16 items-center justify-between border-b border-border px-4">
               <Link href="/app/dashboard" className="flex items-center gap-2.5" onClick={close}>
-                <LogoMark size={28} />
-                <span className="font-bold tracking-tight">ZELVOA</span>
+                <ZelvoaLogo variant="compact" size={28} />
               </Link>
               <Button variant="ghost" size="icon-sm" onClick={close}>
                 <Icon name="x" size={16} />

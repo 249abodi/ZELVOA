@@ -1,18 +1,9 @@
-import { PhasePlaceholder } from "@/components/app/page-header";
+import { getCurrentContext } from "@/lib/auth";
+import { can } from "@/lib/rbac";
+import CampaignsPageClient from "@/components/campaigns/campaigns-page";
 
-export default function CampaignsPage() {
-  return (
-    <PhasePlaceholder
-      phase="Phase 8 — Campaigns"
-      title="Campaigns"
-      description="Plan, run, and report on structured campaigns."
-      icon="campaigns"
-      plannedFeatures={[
-        "Campaign fields: name, description, start/end dates, platforms, goal, status",
-        "Campaign dashboard with posts, reach, engagement, clicks",
-        "Conversion data when available",
-        "Link posts across platforms to a campaign",
-      ]}
-    />
-  );
+export default async function CampaignsPage() {
+  const context = await getCurrentContext();
+  const canManage = can(context?.role, "campaign.manage");
+  return <CampaignsPageClient canManage={canManage} />;
 }

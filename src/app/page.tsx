@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { LogoMark, Icon } from "@/components/icons";
+import { Icon } from "@/components/icons";
+import { ZelvoaLogo } from "@/components/brand/logo";
 import { SiteNav } from "@/components/site/nav";
 import {
   Card,
@@ -309,8 +310,7 @@ export default function LandingPage() {
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-10 sm:flex-row">
           <div className="flex items-center gap-2.5">
-            <LogoMark size={26} />
-            <span className="font-bold tracking-tight">ZELVOA</span>
+            <ZelvoaLogo variant="compact" size={26} />
           </div>
           <p className="text-sm text-muted-foreground">
             Create. Schedule. Grow.

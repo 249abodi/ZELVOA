@@ -94,6 +94,23 @@
   --z-header: 30;
   --z-modal: 60;
   --z-toast: 80;
+
+  /* ── ZELVOA brand ─────────────────────────────────── */
+  /* Centralized identity tokens. Values derive from the approved
+     logo artwork (deep violet #7c63f7 → electric blue #2563eb). */
+  --brand-primary: #7c63f7;
+  --brand-primary-strong: #6d28d9;
+  --brand-secondary: #2563eb;
+  --brand-accent: #a855f7;
+  --brand-on-brand: #ffffff;
+  --brand-surface: #ffffff;
+  --brand-surface-subtle: #f8f9fb;
+  --brand-foreground: #1e2536;
+  --brand-muted: #616c82;
+  --brand-border: #e4e7ef;
+  --brand-background-dark: #0b0e14;
+  --brand-focus: #6d28d9;
+  --brand-hover: #5b21b6;
 }
 
 .dark {
@@ -115,6 +132,21 @@
   --sidebar: #0e1119;
   --sidebar-foreground: #e8eaf1;
   --header: rgba(11, 14, 20, 0.8);
+
+  /* ── ZELVOA brand (dark) ─────────────────────────── */
+  --brand-primary: #927cfb;
+  --brand-primary-strong: #7c63f7;
+  --brand-secondary: #60a5fa;
+  --brand-accent: #c084fc;
+  --brand-on-brand: #ffffff;
+  --brand-surface: #11151f;
+  --brand-surface-subtle: #0e1119;
+  --brand-foreground: #e8eaf1;
+  --brand-muted: #94a0b8;
+  --brand-border: #1f2637;
+  --brand-background-dark: #0b0e14;
+  --brand-focus: #7c63f7;
+  --brand-hover: #927cfb;
 
   --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.5);
@@ -177,6 +209,20 @@
 
   --color-primary: var(--primary-600);
   --color-primary-foreground: #ffffff;
+
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-primary-strong: var(--brand-primary-strong);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-on-brand: var(--brand-on-brand);
+  --color-brand-surface: var(--brand-surface);
+  --color-brand-surface-subtle: var(--brand-surface-subtle);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-border: var(--brand-border);
+  --color-brand-background-dark: var(--brand-background-dark);
+  --color-brand-focus: var(--brand-focus);
+  --color-brand-hover: var(--brand-hover);
 
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);

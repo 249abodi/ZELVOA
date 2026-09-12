@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import type { SVGProps } from "react";
+import { ZelvoaMark } from "@/components/brand/logo";
 
 export type IconName =
   | "dashboard"
@@ -545,29 +546,5 @@ export function Icon({ name, className, size = 20, strokeWidth = 1.8, ...props }
 }
 
 export function LogoMark({ className, size = 28 }: { className?: string; size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 32 32"
-      fill="none"
-      aria-hidden="true"
-      className={className}
-    >
-      <rect width="32" height="32" rx="8" fill="url(#zelvoa-gradient)" />
-      <path
-        d="M10 9h12l-12 14h12"
-        stroke="white"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <defs>
-        <linearGradient id="zelvoa-gradient" x1="0" y1="0" x2="32" y2="32">
-          <stop stopColor="#7c63f7" />
-          <stop offset="1" stopColor="#2563eb" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
+  return <ZelvoaMark size={size} className={className} decorative />;
 }

@@ -24,14 +24,15 @@ export type Permission =
   | "inbox.assign"
   | "billing.manage"
   | "settings.manage"
-  | "ai.use";
+  | "ai.use"
+  | "admin.access";
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   OWNER: [
     "org.view", "org.manage", "workspace.manage", "member.invite", "member.remove", "member.manage",
     "post.view", "post.create", "post.edit", "post.delete", "post.publish", "post.approve",
     "media.view", "media.manage", "accounts.view", "accounts.manage", "analytics.view", "campaign.manage", "inbox.view", "inbox.reply", "inbox.assign",
-    "billing.manage", "settings.manage", "ai.use",
+    "billing.manage", "settings.manage", "ai.use", "admin.access",
   ],
   ADMIN: [
     "org.view", "workspace.manage", "member.invite", "member.remove", "member.manage",

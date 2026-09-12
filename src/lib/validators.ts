@@ -117,6 +117,53 @@ export const calendarQuerySchema = z.object({
     .optional(),
 });
 
+export const campaignCreateSchema = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  goal: z.string().max(1000).optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  status: z.enum(["DRAFT", "ACTIVE", "PAUSED", "COMPLETED"]).optional(),
+});
+
+export const campaignUpdateSchema = z
+  .object({
+    name: z.string().min(1).max(200).optional(),
+    description: z.string().max(2000).optional(),
+    goal: z.string().max(1000).optional(),
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    status: z.enum(["DRAFT", "ACTIVE", "PAUSED", "COMPLETED"]).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, { message: "At least one field must be provided." });
+
+export const campaignPostSchema = z.object({
+  postId: z.string().min(1),
+  socialAccountId: z.string().min(1).optional(),
+});
+
+export const approvalSubmitSchema = z.object({
+  postId: z.string().min(1),
+  comment: z.string().max(2000).optional(),
+});
+
+export const approvalActionSchema = z.object({
+  action: z.enum(["APPROVE", "REQUEST_CHANGES", "REJECT"]),
+  comment: z.string().max(2000).optional(),
+});
+
+export const analyticsQuerySchema = z.object({
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  platform: platformEnum.optional(),
+  days: z.coerce.number().int().min(1).max(365).optional(),
+});
+
+export const analyticsSyncSchema = z.object({
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
+
 export const inboxListQuerySchema = z.object({
   status: z.enum(["OPEN", "ASSIGNED", "ARCHIVED"]).optional(),
   assignee: z.enum(["me", "unassigned", "any"]).optional(),

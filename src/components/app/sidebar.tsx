@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogoMark, Icon, type IconName } from "@/components/icons";
+import { Icon, type IconName } from "@/components/icons";
+import { ZelvoaLogo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
 export interface NavItem {
@@ -30,6 +31,10 @@ export const managementNav: NavItem[] = [
   { label: "Settings", href: "/app/settings", icon: "settings" },
 ];
 
+export const adminNav: NavItem[] = [
+  { label: "Admin Console", href: "/admin", icon: "shield" },
+];
+
 export function Sidebar({
   organizationName,
   role,
@@ -48,8 +53,7 @@ export function Sidebar({
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-sidebar lg:flex">
       <div className="flex h-16 items-center gap-2.5 border-b border-border px-5">
         <Link href="/app/dashboard" className="flex items-center gap-2.5">
-          <LogoMark size={30} />
-          <span className="text-lg font-bold tracking-tight">ZELVOA</span>
+          <ZelvoaLogo variant="full" size={30} />
         </Link>
       </div>
 
@@ -64,6 +68,9 @@ export function Sidebar({
           items={managementNav}
           isActive={isActive}
         />
+        {role === "OWNER" && (
+          <SidebarSection title="Platform" items={adminNav} isActive={isActive} />
+        )}
       </nav>
 
       <div className="border-t border-border p-4">

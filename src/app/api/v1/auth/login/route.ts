@@ -5,6 +5,7 @@ import { signSession } from "@/lib/session";
 import { SESSION_COOKIE } from "@/lib/auth";
 import { loginSchema } from "@/lib/validators";
 import { handleApiError, fail, ok } from "@/lib/api";
+import { checkAuthRateLimit } from "@/lib/auth-rate-limit";
 
 function setSessionCookie(response: NextResponse, token: string) {
   response.cookies.set({
@@ -19,6 +20,14 @@ function setSessionCookie(response: NextResponse, token: string) {
 }
 
 export async function POST(request: Request) {
+  const rate = checkAuthRateLimit(request);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: { message: "Too many attempts. Try again later." } },
+      { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } }
+    );
+  }
+
   try {
     const raw = await request.json();
     const body = loginSchema.parse(raw);

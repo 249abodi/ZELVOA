@@ -129,6 +129,13 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
+enum LicenseStatus {
+  ACTIVE
+  SUSPENDED
+  EXPIRED
+  REVOKED
+}
+
 enum BillingInterval {
   MONTHLY
   YEARLY
@@ -210,9 +217,10 @@ model Organization {
   members     OrganizationMember[]
   workspaces  Workspace[]
   settings    OrganizationSettings?
-  subscription Subscription?
-  invoices    Invoice[]
-  auditLogs   AuditLog[]
+subscription Subscription?
+  license      LicenseKey?
+  invoices     Invoice[]
+  auditLogs    AuditLog[]
 }
 
 model Workspace {
@@ -773,6 +781,23 @@ model Invoice {
   subscription Subscription? @relation(fields: [subscriptionId], references: [id])
 
   @@index([organizationId, status])
+}
+
+model LicenseKey {
+  id             String        @id @default(cuid())
+  organizationId String        @unique
+  key            String        @unique
+  planSlug       String
+  seats          Int           @default(1)
+  status         LicenseStatus @default(ACTIVE)
+  activatedAt    DateTime      @default(now())
+  expiresAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([status])
 }
 
 // ───────────────────────────── AI ─────────────────────────────
