@@ -10,7 +10,7 @@ import type {
 } from "@/lib/integrations/types";
 import { PublishingError } from "@/lib/publishing/errors";
 
-const GRAPH = "https://graph.facebook.com/v18.0";
+const GRAPH = "https://graph.facebook.com/v25.0";
 
 interface MetaErrorBody {
   error?: { message?: string; code?: number; error_subcode?: number; type?: string };
@@ -257,12 +257,22 @@ export class FacebookProvider extends OAuth2SocialProvider {
 }
 
 /**
- * Instagram content publishing via the Instagram API for developers. Publishing
- * requires a Business/Creator account that has granted instagram_content_publish.
+ * Instagram Business/Creator publishing through Facebook Login.
+ *
+ * Instagram connects with the same Meta app as Facebook Pages: one
+ * authorization + token exchange produces a long-lived user token, then every
+ * page the user administers is resolved to its linked Instagram
+ * Business/Creator account. Publishing therefore uses the user (not page)
+ * token with the instagram_content_publish permission.
  */
 export class InstagramProvider extends OAuth2SocialProvider {
   constructor() {
     super("INSTAGRAM");
+  }
+
+  /** Instagram connects through the Meta app, so prefer the unified credentials. */
+  override getCredentials() {
+    return getProviderCredentials("INSTAGRAM");
   }
 
   override async exchangeCode(code: string, redirectUri: string): Promise<ExchangedToken> {
@@ -277,45 +287,116 @@ export class InstagramProvider extends OAuth2SocialProvider {
       });
     }
     const long = (await metaGraph(
-      "access_token",
+      "oauth/access_token",
       {
-        grant_type: "ig_exchange_token",
+        grant_type: "fb_exchange_token",
+        client_id: creds.clientId,
         client_secret: creds.clientSecret,
-        access_token: exchanged.accessToken,
+        fb_exchange_token: exchanged.accessToken,
       },
       true,
       "PROVIDER_AUTH"
-    )) as { access_token?: string; user_id?: string };
-    const longToken = long?.access_token ?? exchanged.accessToken;
-    const profile = (await metaGraph(
-      "me",
-      {
-        fields: "id,username,name",
-        access_token: longToken,
-      },
-      true,
-      "PROVIDER_AUTH"
-    )) as { id?: string; username?: string; name?: string };
+    )) as { access_token?: string; expires_in?: number };
     return {
-      accessToken: longToken,
+      accessToken: long?.access_token ?? exchanged.accessToken,
       refreshToken: undefined,
-      expiresInSeconds: 60 * 60 * 24 * 59,
+      expiresInSeconds:
+        typeof long?.expires_in === "number" ? long.expires_in : 60 * 60 * 24 * 60,
       scopes: exchanged.scopes ?? [],
-      platformAccountId: String(profile.id ?? long?.user_id ?? exchanged.platformAccountId),
-      name: String(profile.name ?? profile.username ?? "Instagram account"),
-      username: (profile.username as string) ?? null,
+      platformAccountId: exchanged.platformAccountId,
+      name: exchanged.name,
+      username: exchanged.username ?? null,
       avatarUrl: null,
       raw: { longLived: true },
     };
   }
 
-  override async refresh(accessToken: string): Promise<RefreshResult> {
-    const body = (await metaGraph(
-      "access_token",
-      { grant_type: "ig_refresh_token", access_token: accessToken },
+  override async getAccounts(exchanged: ExchangedToken): Promise<ProviderAccountRecord[]> {
+    const pages = (await metaGraph(
+      "me/accounts",
+      {
+        access_token: exchanged.accessToken,
+        fields: "id,name",
+        limit: "200",
+      },
       true,
       "PROVIDER_AUTH"
-    )) as { access_token?: string; expires_in?: number };
+    )) as { data?: Array<Record<string, unknown>> };
+
+    const list = Array.isArray(pages?.data) ? pages.data : [];
+    const records: ProviderAccountRecord[] = [];
+
+    for (const page of list) {
+      const pageId = String(page.id ?? "");
+      if (!pageId) continue;
+      try {
+        const ig = (await metaGraph(
+          `${pageId}/instagram_accounts`,
+          {
+            access_token: exchanged.accessToken,
+            fields: "id,username,name,profile_picture_url",
+          },
+          true,
+          "PROVIDER_AUTH"
+        )) as { data?: Array<Record<string, unknown>> };
+        const nodes = Array.isArray(ig?.data) ? ig.data : [];
+        for (const node of nodes) {
+          const igId = String(node.id ?? "");
+          if (!igId) continue;
+          const displayName = String(node.name ?? page.name ?? "Instagram account");
+          records.push({
+            platform: "INSTAGRAM",
+            platformAccountId: igId,
+            name: displayName,
+            username: (node.username as string) ?? null,
+            avatarUrl: (node.profile_picture_url as string) ?? null,
+            scopes: exchanged.scopes ?? [],
+            status: "CONNECTED",
+            token: {
+              accessToken: exchanged.accessToken,
+              refreshToken: undefined,
+              expiresInSeconds: exchanged.expiresInSeconds ?? null,
+              scopes: exchanged.scopes ?? [],
+              platformAccountId: igId,
+              name: displayName,
+              username: (node.username as string) ?? null,
+              avatarUrl: (node.profile_picture_url as string) ?? null,
+            },
+            isDevProvider: false,
+          });
+        }
+      } catch {
+        // A page that cannot surface its Instagram account is skipped.
+      }
+    }
+
+    if (records.length === 0) {
+      throw new PublishingError({
+        code: "PROVIDER_PERMISSION",
+        stage: "PROVIDER_AUTH",
+        message:
+          "The connected Facebook profile is not linked to an Instagram Business or Creator account available for publishing.",
+        retryable: false,
+      });
+    }
+    return records;
+  }
+
+  override async refresh(accessToken: string): Promise<RefreshResult> {
+    const url = `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${encodeURIComponent(accessToken)}`;
+    const res = await fetch(url);
+    let body: { access_token?: string; expires_in?: number };
+    if (!res.ok) {
+      const raw = (await res.json().catch(() => ({}))) as MetaErrorBody;
+      metaError(raw, true, "PROVIDER_AUTH");
+      body = {};
+    } else {
+      body = (await res.json()) as { access_token?: string; expires_in?: number };
+      const raw = { error: (body as { error?: { message?: string; code?: number } }).error };
+      if (raw.error) {
+        metaError(raw as MetaErrorBody, true, "PROVIDER_AUTH");
+      }
+    }
     if (!body.access_token) {
       throw new PublishingError({
         code: "AUTH_EXPIRED",

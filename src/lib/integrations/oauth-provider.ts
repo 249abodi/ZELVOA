@@ -23,14 +23,14 @@ interface OAuthEndpointConfig {
 
 const OAUTH_ENDPOINTS: Record<Platform, OAuthEndpointConfig> = {
   INSTAGRAM: {
-    authorizationEndpoint: "https://api.instagram.com/oauth/authorize",
-    tokenEndpoint: "https://api.instagram.com/oauth/access_token",
-    scopes: ["instagram_content_publish", "instagram_basic", "pages_show_list"],
+    authorizationEndpoint: "https://www.facebook.com/v25.0/dialog/oauth",
+    tokenEndpoint: "https://graph.facebook.com/v25.0/oauth/access_token",
+    scopes: ["instagram_basic", "instagram_content_publish", "pages_show_list"],
   },
   FACEBOOK: {
-    authorizationEndpoint: "https://www.facebook.com/v18.0/dialog/oauth",
-    tokenEndpoint: "https://graph.facebook.com/v18.0/oauth/access_token",
-    revocationEndpoint: "https://graph.facebook.com/v18.0/{userId}/permissions",
+    authorizationEndpoint: "https://www.facebook.com/v25.0/dialog/oauth",
+    tokenEndpoint: "https://graph.facebook.com/v25.0/oauth/access_token",
+    revocationEndpoint: "https://graph.facebook.com/v25.0/{userId}/permissions",
     scopes: ["pages_manage_posts", "pages_read_engagement", "pages_messaging"],
   },
   TIKTOK: {

@@ -10,7 +10,7 @@ this file — never commit real secrets, tokens, or app credentials here.
 | Platform | Publishing | OAuth status | Notes |
 | --- | --- | --- | --- |
 | Facebook Pages | Ready | NOT_CONFIGURED | Requires Meta app + `FACEBOOK_CLIENT_ID`/`FACEBOOK_CLIENT_SECRET` |
-| Instagram Business | Ready | NOT_CONFIGURED | Requires Meta app + `INSTAGRAM_CLIENT_ID`/`INSTAGRAM_CLIENT_SECRET` |
+| Instagram Business | Ready | NOT_CONFIGURED | Connects through the same Meta app (Facebook Login); `INSTAGRAM_*` optional fallback |
 | LinkedIn | Ready | NOT_CONFIGURED | Requires `LINKEDIN_CLIENT_ID`/`LINKEDIN_CLIENT_SECRET` |
 | X (Twitter) | Ready | NOT_CONFIGURED | Requires `X_CLIENT_ID`/`X_CLIENT_SECRET` |
 | TikTok | BLOCKED | — | Not implemented (no official API credentials) |
@@ -25,10 +25,10 @@ this file — never commit real secrets, tokens, or app credentials here.
 | `ENCRYPTION_KEY` | Token storage | 32-byte hex; AES-256-GCM key for provider tokens |
 | `NEXT_PUBLIC_APP_URL` | OAuth redirect | Must be `https://zelvoa.vercel.app` in production |
 | `CRON_SECRET` | Scheduler | Sent by Vercel as `Authorization: Bearer <CRON_SECRET>` |
-| `FACEBOOK_CLIENT_ID` | Facebook OAuth | Meta app ID |
-| `FACEBOOK_CLIENT_SECRET` | Facebook OAuth | Meta app secret |
-| `INSTAGRAM_CLIENT_ID` | Instagram OAuth | Meta app ID (Instagram product) |
-| `INSTAGRAM_CLIENT_SECRET` | Instagram OAuth | Meta app secret |
+| `FACEBOOK_CLIENT_ID` | Facebook + Instagram OAuth | Meta app ID — the unified Meta app enables both platforms |
+| `FACEBOOK_CLIENT_SECRET` | Facebook + Instagram OAuth | Meta app secret |
+| `INSTAGRAM_CLIENT_ID` | Instagram OAuth (fallback) | Optional — only needed if you do not reuse the Meta app |
+| `INSTAGRAM_CLIENT_SECRET` | Instagram OAuth (fallback) | Optional |
 | `LINKEDIN_CLIENT_ID` | LinkedIn OAuth | LinkedIn developer app ID |
 | `LINKEDIN_CLIENT_SECRET` | LinkedIn OAuth | LinkedIn developer app secret |
 | `X_CLIENT_ID` | X OAuth | X developer app ID |
@@ -40,6 +40,13 @@ Real values exist only in Vercel Project Settings / local `.env` (gitignored).
 
 ## Meta (Facebook + Instagram) setup
 
+Both Facebook Pages and Instagram Business connect through **one Meta app**
+(Facebook Login). Instagram uses that same app: the user authorizes via the
+Facebook Login dialog, then ZELVOA resolves the user's managed pages to their
+linked Instagram Business/Creator accounts. Instagram-specific app credentials
+(`INSTAGRAM_CLIENT_ID`/`INSTAGRAM_CLIENT_SECRET`) are optional and used only as a
+fallback when the unified Meta app is not configured.
+
 The Meta callback URL (must be registered in the Meta app) is fixed by the app:
 
 ```
@@ -48,18 +55,20 @@ https://zelvoa.vercel.app/api/v1/accounts/oauth/callback
 
 ### 1. Create the Meta app
 
-1. Go to https://developers.facebook.com/apps and create a Business app.
-2. Add the **Facebook Login** and **Instagram** (Instagram Basic Display + Instagram
-   Graph API) products to the app.
+1. Go to https://developers.facebook.com/apps and create a **Business** app.
+2. Add the **Facebook Login** product to the app.
+3. For Instagram, add the **Instagram Graph API** product (for a
+   Business/Creator account; do not add "Basic Display").
+4. In **App settings > Basic**, note the App ID and App Secret.
 
 ### 2. OAuth settings
 
-1. In **Settings > Basic**, note the App ID and App Secret.
-2. In **Facebook Login > Settings**, add the callback URL above to both
-   "Valid OAuth Redirect URIs" and "Allowed Domains" (`https://zelvoa.vercel.app`).
-3. Same for **Instagram > Settings** if it exposes its own redirect URI list.
-4. Use "OAuth for Business (Login as Business)" permission type so app tokens can
-   be long-lived and used by the server.
+1. In **Facebook Login > Settings**, set "OAuth for Business (Login as Business)"
+   (needed for long-lived server tokens) and add the callback URL above to
+   **Valid OAuth Redirect URIs** and `https://zelvoa.vercel.app` to **Allowed Domains**.
+2. For local development, add `http://localhost:3000/api/v1/accounts/oauth/callback`
+   as a second Valid OAuth Redirect URI. `NEXT_PUBLIC_APP_URL` in the local `.env`
+   selects which one is used.
 
 ### 3. Required permissions
 
@@ -68,22 +77,23 @@ https://zelvoa.vercel.app/api/v1/accounts/oauth/callback
 | Facebook Pages | `pages_manage_posts`, `pages_read_engagement`, `pages_messaging` |
 | Instagram Business | `instagram_content_publish`, `instagram_basic`, `pages_show_list` |
 
-The app must be in **Live** mode (not Development) and be approved for these
-permissions, otherwise Graph API v18.0 calls fail with an OAuthException. For a
-personal single-owner deployment, adding yourself as an admin/developer is enough.
+In Development mode, only app admins/developers/testers can complete the flow.
+For a personal deployment, put the account that owns the Pages in that role. For
+a commercial launch, the app must pass **App Review** for the permissions above
+and be in **Live** mode, otherwise Graph API calls fail with an OAuthException.
 
 ### 4. Configure credentials
 
-In Vercel Project Settings, set (never in chat or commits):
+In Vercel Project Settings (never in chat or commits):
 
 ```
 FACEBOOK_CLIENT_ID=<Meta App ID>
 FACEBOOK_CLIENT_SECRET=<Meta App Secret>
-INSTAGRAM_CLIENT_ID=<Meta App ID>
-INSTAGRAM_CLIENT_SECRET=<Meta App Secret>
 ```
 
-Then redeploy so the environment is applied.
+Setting only the unified Meta app pair already enables Instagram — ZELVOA falls
+back to `INSTAGRAM_CLIENT_ID`/`INSTAGRAM_CLIENT_SECRET` only when the Meta app
+pair is absent. Redeploy after changing environment variables.
 
 ### 5. Connect
 
@@ -93,34 +103,68 @@ Then redeploy so the environment is applied.
    workspace, then redirects to Meta Login.
 4. Grant the requested permissions for the Page/Business you own.
 5. Meta redirects back to `/api/v1/accounts/oauth/callback`, which validates the
-   state, exchanges the code, encrypts the tokens, and redirects to
-   `/app/accounts`.
+   state, exchanges the code for a short-lived user token, exchanges that for a
+   **long-lived** token, and:
+   - **Facebook**: expands the profile into one account per managed Page, each
+     storing its own page-scoped token.
+   - **Instagram**: lists managed Pages and resolves each to its linked Instagram
+     Business/Creator account (only those are stored; personal accounts are not
+     returned by the Graph API). A clear error is returned if no Business/Creator
+     Instagram account is available.
 
-Access tokens are returned from OAuth as Short-Lived and can be exchanged for
-Long-Lived server tokens; the app stores them encrypted (AES-256-GCM via
-`ENCRYPTION_KEY`) and never exposes them through the API.
+Access tokens are stored encrypted (AES-256-GCM via `ENCRYPTION_KEY`) and never
+exposed through the API.
 
-### 6. Token lifecycle
+### 6. Token lifecycle & notifications
 
-- Tokens are encrypted at rest and decrypted only inside the publishing /
-  refresh flows in `src/lib/crypto.ts` and the provider adapters.
+- Tokens are encrypted at rest and decrypted only inside the publishing / refresh
+  flows in `src/lib/crypto.ts` and the provider adapters.
+- Instagram long-lived user tokens expire after ~60 days and are refreshed by the
+  app at `graph.instagram.com/refresh_access_token`. Facebook page tokens do not
+  expire.
 - The refresh endpoint (`POST /api/v1/accounts/{id}/refresh`, requires
-  `accounts.manage`) renews tokens; the scheduler surface notifies the user on
-  failures (`TOKEN_EXPIRING` notification).
-- Disconnecting revokes remotely best-effort and wipes stored tokens in a
-  transaction.
+  `accounts.manage`) renews tokens.
+- Notifications: `TOKEN_EXPIRING` when a token nears expiry, `TOKEN_EXPIRED` when
+  an expired token blocks publishing, `OAUTH_CONNECT_FAILED` when a connection
+  attempt fails on the provider side.
+- Disconnecting revokes the permission remotely best-effort and wipes stored
+  tokens in a transaction.
+
+### 7. Graph API version
+
+The Meta adapters target **Graph API v25.0** (`graph.facebook.com/v25.0`,
+`www.facebook.com/v25.0/dialog/oauth`). Older versions are dropped by Meta over
+time — bump `GRAPH` in `src/lib/integrations/providers/meta.ts` and the endpoint
+version strings in `src/lib/integrations/oauth-provider.ts` together.
+
+## Troubleshooting
+
+- `not configured` in the Accounts screen → the credential pair is missing/empty
+  for that platform (Instagram also enables via the Meta app pair).
+- "OAuthException (#200): (Permission denied)" → the user lacks the permission or
+  the app is in Development mode and the user is not an app role. Run App Review
+  or add the user as an admin/tester.
+- "OAuthException (#190): access token expired" → reconnect the account or use
+  Refresh; the scheduler marks the account `EXPIRED` and sends a `TOKEN_EXPIRED`
+  notification.
+- Instagram connects but no account appears → the connected Facebook profile is
+  not an admin of any Page linked to a Business/Creator Instagram account.
+- `503` on the scheduler → `CRON_SECRET` not set or mismatched.
+- `connect_error` on /app/accounts after connecting → check `[oauth-callback]`
+  server logs; provider error messages are redacted before logging.
 
 ## Scheduler
 
 - Cron URL: `https://zelvoa.vercel.app/api/v1/scheduler/run`
 - Runs once per day at 09:00 UTC via `vercel.json` (`0 9 * * *`; Hobby plan
-  supports one scheduled run per day).
+  supports one scheduled run per day; publishing is best-effort per account with
+  retries, so daily is deliberately conservative).
 - Auth: requires `CRON_SECRET`. Vercel Cron automatically sends
   `Authorization: Bearer <CRON_SECRET>`; the route also accepts
   `x-cron-secret` or `?token=` for manual/local testing.
-- Behavior: publishes due posts (status `SCHEDULED`, `scheduledAt <= now`) using
-  the publishing service, then returns a summary. If `CRON_SECRET` is unset the
-  endpoint returns `503` (deliberate — never leave the cron open).
+- Behavior: publishes due posts using the publishing service, then returns a
+  summary. If `CRON_SECRET` is unset the endpoint returns `503` (deliberate —
+  never leave the cron open).
 
 ## Manual run (locally)
 
@@ -131,13 +175,14 @@ CRON_SECRET="<value from your .env>" node -e "fetch('http://localhost:3000/api/v
 ## Publishing
 
 - `POST /api/v1/posts/{id}/publish` publishes immediately (or on schedule) to the
-  selected accounts. It claims the accounts atomically, so resubmits do not double
+  selected accounts. It claims the jobs atomically, so resubmits do not double
   publish.
 - Server-side, publishing is best-effort per account with retries and safe error
-  codes; result statuses are `PUBLISHED`, `FAILED`, `PARTIAL`, `SKIPPED`.
+  codes; jobs finalize as `PUBLISHED`, `RETRYING`, or `FAILED_PERMANENTLY`.
+- Accounts in a `DISCONNECTED`/`REVOKED` state are rejected before publishing as
+  `ACCOUNT_INVALID`.
 - Media is served via short-lived signed URLs for the provider adapters.
-- All publishing writes audit entries (`post.publish`, `account.publish_failed`,
-  `account.token_expired`, …) and emits notifications to the requesting user.
+- All publishing writes audit entries and emits notifications to the post author.
 
 ## Security notes
 

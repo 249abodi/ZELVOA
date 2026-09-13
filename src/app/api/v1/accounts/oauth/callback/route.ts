@@ -5,6 +5,7 @@ import { callbackQuerySchema } from "@/lib/validators";
 import { getProvider } from "@/lib/integrations/factory";
 import { encryptSecret } from "@/lib/crypto";
 import { markDev, isDevMarkerScope } from "@/lib/integrations/dev-provider";
+import { redactError } from "@/lib/integrations/redact";
 import { writeAudit } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications/service";
 import { assessOAuthState, buildAccountsRedirect } from "@/lib/integrations/oauth";
@@ -32,6 +33,10 @@ export async function GET(request: Request) {
   if (!parsed.success) return redirectToApp(raw.state, "invalid_oauth_callback");
 
   const body = parsed.data;
+
+  let failedUserId: string | null = null;
+  let failedWorkspaceId: string | null = null;
+  let failedPlatform: string | null = null;
 
   try {
     const record = await prisma.oAuthState.findUnique({ where: { state: body.state } });
@@ -65,6 +70,10 @@ export async function GET(request: Request) {
       },
     });
     if (!member) return redirectToApp(body.state, "not_a_member");
+
+    failedUserId = context.user.id;
+    failedWorkspaceId = record.workspaceId;
+    failedPlatform = record.platform;
 
     const provider = getProvider(record.platform);
     const exchanged = await provider.exchangeCode(
@@ -191,7 +200,22 @@ export async function GET(request: Request) {
         data: { consumedAt: new Date() },
       })
       .catch(() => undefined);
-    console.error("[oauth-callback]", detail);
+    console.error("[oauth-callback]", redactError(detail));
+    if (failedUserId) {
+      await createNotification({
+        workspaceId: failedWorkspaceId,
+        userId: failedUserId,
+        type: "OAUTH_CONNECT_FAILED",
+        title: "Account connection failed",
+        body: "The platform connection could not be completed. Please try again.",
+        data: {
+          platform: failedPlatform,
+          error: body.error ?? null,
+          errorDescription: body.error_description ?? null,
+          reason: "provider_error",
+        } as never,
+      }).catch(() => undefined);
+    }
     return redirectToApp(body.state, "provider_error");
   }
 }

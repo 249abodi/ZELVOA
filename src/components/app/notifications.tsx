@@ -20,6 +20,8 @@ const TYPE_META: Record<string, { icon: IconName; cls: string }> = {
   ACCOUNT_CONNECTED: { icon: "check", cls: "text-success" },
   ACCOUNT_DISCONNECTED: { icon: "x", cls: "text-muted-foreground" },
   TOKEN_EXPIRING: { icon: "alert", cls: "text-warning" },
+  TOKEN_EXPIRED: { icon: "x", cls: "text-destructive" },
+  OAUTH_CONNECT_FAILED: { icon: "alert-circle", cls: "text-destructive" },
   POST_SCHEDULED: { icon: "calendar-dot", cls: "text-secondary-600 dark:text-secondary-400" },
   POST_PUBLISHED: { icon: "zap", cls: "text-success" },
   POST_FAILED: { icon: "alert-circle", cls: "text-destructive" },

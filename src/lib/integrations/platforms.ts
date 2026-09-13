@@ -57,7 +57,7 @@ export const PLATFORM_META: Record<Platform, PlatformMeta> = {
       mediaRequired: false,
       supportsCarousel: true,
     },
-    docsUrl: "https://developers.facebook.com/docs/graph-api/reference/v18.0/page/feed",
+    docsUrl: "https://developers.facebook.com/docs/graph-api/reference/page/feed",
   },
   TIKTOK: {
     platform: "TIKTOK",

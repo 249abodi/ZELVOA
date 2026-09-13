@@ -134,6 +134,16 @@ async function finalizeFailure(
       body: safeMessage(code),
       data: { postId: job.postId, scheduledPostId: job.id, platform: job.platform, errorCode: code } as never,
     });
+    if (code === "AUTH_EXPIRED" || code === "NOT_AUTHENTICATED") {
+      await createNotification({
+        workspaceId: job.workspaceId,
+        userId: job.post.createdById,
+        type: "TOKEN_EXPIRED",
+        title: "Connected account token has expired",
+        body: safeMessage(code),
+        data: { postId: job.postId, scheduledPostId: job.id, platform: job.platform, errorCode: code } as never,
+      }).catch(() => undefined);
+    }
     return "FAILED_PERMANENTLY";
   }
 
@@ -212,6 +222,14 @@ export class PublishingService {
     if (!refreshed.socialAccount?.token) {
       const status = await finalizeFailure(refreshed, "NOT_AUTHENTICATED", "PROVIDER_CONNECT", true, null);
       return { scheduledPostId: id, status, errorCode: "NOT_AUTHENTICATED" };
+    }
+
+    if (
+      refreshed.socialAccount.status === "DISCONNECTED" ||
+      refreshed.socialAccount.status === "REVOKED"
+    ) {
+      const status = await finalizeFailure(refreshed, "ACCOUNT_INVALID", "PROVIDER_CONNECT", false, null);
+      return { scheduledPostId: id, status, errorCode: "ACCOUNT_INVALID" };
     }
 
     let accessToken: string;

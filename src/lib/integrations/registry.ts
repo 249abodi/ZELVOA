@@ -20,6 +20,15 @@ export function getProviderCredentials(platform: Platform): {
   clientId: string;
   clientSecret: string;
 } | null {
+  if (platform === "INSTAGRAM") {
+    const meta = getPlatformMeta("INSTAGRAM");
+    const unified = getProviderCredentials("FACEBOOK");
+    if (unified) return unified;
+    const clientId = process.env[meta.envClientId];
+    const clientSecret = process.env[meta.envClientSecret];
+    if (clientId && clientSecret) return { clientId, clientSecret };
+    return null;
+  }
   const meta = getPlatformMeta(platform);
   const clientId = process.env[meta.envClientId];
   const clientSecret = process.env[meta.envClientSecret];
@@ -50,7 +59,10 @@ export function getRegistryEntry(platform: Platform): RegistryEntry {
     platform,
     configured: false,
     devMode: false,
-    reason: `Add ${getPlatformMeta(platform).envClientId} and ${getPlatformMeta(platform).envClientSecret} to enable this integration.`,
+    reason:
+      platform === "INSTAGRAM"
+        ? `Add the Meta app credentials (FACEBOOK_CLIENT_ID / FACEBOOK_CLIENT_SECRET) or INSTAGRAM_CLIENT_ID / INSTAGRAM_CLIENT_SECRET to enable this integration.`
+        : `Add ${getPlatformMeta(platform).envClientId} and ${getPlatformMeta(platform).envClientSecret} to enable this integration.`,
   };
 }
 
