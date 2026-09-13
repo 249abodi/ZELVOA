@@ -154,8 +154,10 @@ export default async function SettingsPage({
                     </div>
                     <Switch
                       checked={workspaceSettings.approvalRequired}
+                      disabled
                       onCheckedChange={() => {}}
                     />
+                    <span className="text-xs text-muted-foreground">Coming soon</span>
                   </div>
                 ) : null}
               </div>
@@ -182,7 +184,10 @@ function NotificationRow({
         <p className="text-sm font-medium">{title}</p>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
-      <Switch checked={defaultValue} onCheckedChange={() => {}} />
+      <div className="flex items-center gap-2">
+        <Switch checked={defaultValue} disabled onCheckedChange={() => {}} />
+        <span className="text-xs text-muted-foreground">Coming soon</span>
+      </div>
     </div>
   );
 }

@@ -1,10 +1,12 @@
 import { getCurrentContext } from "@/lib/auth";
+import { can } from "@/lib/rbac";
+import { ok, unauthorized, fail } from "@/lib/api";
 import { prisma } from "@/lib/db";
-import { ok, unauthorized } from "@/lib/api";
 
 export async function GET() {
   const context = await getCurrentContext();
   if (!context) return unauthorized();
+  if (!can(context.role, "post.view")) return fail("You do not have permission to view the dashboard.", 403);
 
   const workspaceId = context.workspace?.id;
   if (!workspaceId) {

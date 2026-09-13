@@ -179,8 +179,14 @@ CRON_SECRET="<value from your .env>" node -e "fetch('http://localhost:3000/api/v
   publish.
 - Server-side, publishing is best-effort per account with retries and safe error
   codes; jobs finalize as `PUBLISHED`, `RETRYING`, or `FAILED_PERMANENTLY`.
-- Accounts in a `DISCONNECTED`/`REVOKED` state are rejected before publishing as
-  `ACCOUNT_INVALID`.
+- Accounts in a `DISCONNECTED`/`REVOKED`/`EXPIRED` state are rejected before
+  publishing as `ACCOUNT_INVALID`. Expired access tokens are only refreshed when
+  the account is still `CONNECTED`; an `EXPIRED` account must be refreshed via
+  `POST /api/v1/accounts/{id}/refresh` first.
+- Rescheduling a post (`PATCH /api/v1/posts/{id}`) only schedules against
+  `CONNECTED` accounts.
+- Refreshed access and refresh tokens are re-encrypted (AES-256-GCM) in place —
+  never stored in plaintext.
 - Media is served via short-lived signed URLs for the provider adapters.
 - All publishing writes audit entries and emits notifications to the post author.
 
@@ -190,7 +196,16 @@ CRON_SECRET="<value from your .env>" node -e "fetch('http://localhost:3000/api/v
   never trusted. OAuth callbacks are anonymous by design but validate the
   single-use state.
 - Every record is scoped to `organizationId` + `workspaceId`; cross-tenant reads
-  are impossible via the API.
+  are impossible via the API, and a workspace is only honored if it belongs to
+  the member's organization.
+- `AUTH_SECRET` fails closed in production: if it is missing, session signing and
+  signature helpers throw instead of silently using the development fallback
+  secret.
+- Passwords are hashed with bcrypt (10 rounds). Legacy pre-bcrypt hashes remain
+  verifiable; the next successful login does not rehash, so rotating old hashes
+  is optional cleanup.
+- AI usage quotas and per-user rate limits return `429` (with `Retry-After`),
+  not generic `500`s.
 - No fake integrations: a provider with no credentials reports
   `not configured`; unimplemented providers are `BLOCKED`. Nothing in this
   project pretends to publish without a real provider.

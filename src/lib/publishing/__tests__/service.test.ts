@@ -6,6 +6,7 @@ const state = vi.hoisted(() => ({
   registryDevMode: false,
   provider: {
     publish: vi.fn(),
+    refresh: vi.fn(),
   },
   prisma: {
     scheduledPost: {
@@ -28,6 +29,7 @@ const state = vi.hoisted(() => ({
 vi.mock("@/lib/db", () => ({ prisma: state.prisma }));
 vi.mock("@/lib/crypto", () => ({
   decryptSecret: vi.fn(() => "plain-token"),
+  encryptSecret: vi.fn((value: string) => `enc:${value}`),
   signMediaUrl: vi.fn(() => "sig-123"),
 }));
 vi.mock("@/lib/integrations/factory", () => ({
@@ -119,6 +121,8 @@ function resetAll() {
   state.prisma.notification.create.mockResolvedValue({});
   state.writeAudit.mockReset();
   state.createNotification.mockReset();
+  state.provider.publish.mockReset();
+  state.provider.refresh.mockReset();
   state.registryConfigured = true;
   state.registryDevMode = false;
 }
@@ -255,6 +259,68 @@ describe("PublishingService.publishScheduledPost", () => {
     };
     expect(String(update.data.errorMessage)).toContain("not available");
     expect(String(update.data.errorMessage)).not.toContain("TIKTOK");
+  });
+
+  it("fails permanently when the account status is EXPIRED", async () => {
+    state.prisma.scheduledPost.findUnique.mockResolvedValue(
+      makeJob({ socialAccount: { ...makeJob().socialAccount, status: "EXPIRED" } })
+    );
+    state.prisma.scheduledPost.updateMany.mockResolvedValue({ count: 1 });
+
+    const outcome = await publishingService.publishScheduledPost("sp_1");
+
+    expect(outcome.status).toBe("FAILED_PERMANENTLY");
+    expect(outcome.errorCode).toBe("ACCOUNT_INVALID");
+    expect(state.provider.publish).not.toHaveBeenCalled();
+  });
+
+  it("fails permanently when the account status is DISCONNECTED", async () => {
+    state.prisma.scheduledPost.findUnique.mockResolvedValue(
+      makeJob({ socialAccount: { ...makeJob().socialAccount, status: "DISCONNECTED" } })
+    );
+    state.prisma.scheduledPost.updateMany.mockResolvedValue({ count: 1 });
+
+    const outcome = await publishingService.publishScheduledPost("sp_1");
+
+    expect(outcome.status).toBe("FAILED_PERMANENTLY");
+    expect(outcome.errorCode).toBe("ACCOUNT_INVALID");
+    expect(state.provider.publish).not.toHaveBeenCalled();
+  });
+
+  it("stores refreshed tokens encrypted, never in plaintext", async () => {
+    state.prisma.scheduledPost.findUnique.mockResolvedValue(
+      makeJob({
+        socialAccount: {
+          ...makeJob().socialAccount,
+          token: {
+            encryptedAccessToken: "enc",
+            encryptedRefreshToken: "enc-refresh",
+            tokenExpiresAt: new Date(Date.now() + 60 * 1000),
+          },
+        },
+      })
+    );
+    state.prisma.scheduledPost.updateMany.mockResolvedValue({ count: 1 });
+    state.provider.refresh.mockResolvedValue({
+      accessToken: "new-access-token",
+      refreshToken: "new-refresh-token",
+      expiresInSeconds: 3600,
+    });
+    state.provider.publish.mockResolvedValue({
+      providerPostId: "ig_media_refreshed",
+      publishedAt: new Date().toISOString(),
+    });
+
+    const outcome = await publishingService.publishScheduledPost("sp_1");
+
+    expect(outcome.status).toBe("PUBLISHED");
+    const update = state.prisma.socialAccountToken.update.mock.calls[0][0] as {
+      data: Record<string, unknown>;
+    };
+    expect(update.data.encryptedAccessToken).toBe("enc:new-access-token");
+    expect(update.data.encryptedRefreshToken).toBe("enc:new-refresh-token");
+    expect(update.data.encryptedAccessToken).not.toBe("new-access-token");
+    expect(update.data.encryptedRefreshToken).not.toBe("new-refresh-token");
   });
 });
 

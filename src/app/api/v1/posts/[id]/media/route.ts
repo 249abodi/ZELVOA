@@ -17,6 +17,9 @@ export async function GET(
     const context = await getCurrentContext();
     if (!context) return unauthorized();
     if (!context.workspace) return fail("No workspace selected.", 400);
+    if (!can(context.role, "post.view")) {
+      return fail("You do not have permission to view post media.", 403);
+    }
 
     const { id } = await params;
     const postMedia = await prisma.postMedia.findMany({

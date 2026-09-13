@@ -100,7 +100,7 @@ function growthBadge(pct: number | null | undefined) {
     <span
       className={cn(
         "inline-flex items-center gap-1 text-xs font-medium",
-        up ? "text-emerald-500" : "text-red-500"
+        up ? "text-success" : "text-destructive"
       )}
     >
       <Icon name={up ? "trend-up" : "arrow-down"} size={13} />

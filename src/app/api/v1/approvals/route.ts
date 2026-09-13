@@ -9,6 +9,9 @@ export async function GET(request: Request) {
     const context = await getCurrentContext();
     if (!context) return unauthorized();
     if (!context.workspace) return fail("No workspace selected.", 400);
+    if (!can(context.role, "post.view")) {
+      return fail("You do not have permission to view approvals.", 403);
+    }
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");

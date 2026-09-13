@@ -10,6 +10,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const context = await getCurrentContext();
     if (!context) return unauthorized();
     if (!context.workspace) return fail("No workspace selected.", 400);
+    if (!can(context.role, "post.view")) {
+      return fail("You do not have permission to view approvals.", 403);
+    }
 
     const { id } = await params;
     const approval = await prisma.approval.findFirst({

@@ -140,6 +140,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     });
     if (!post) return fail("Post not found.", 404);
 
+    if (parsed.socialAccountId) {
+      const socialAccount = await prisma.socialAccount.findFirst({
+        where: { id: parsed.socialAccountId, workspaceId: context.workspace.id },
+        select: { id: true },
+      });
+      if (!socialAccount) return fail("Social account not found.", 404);
+    }
+
     const existing = await prisma.campaignPost.findFirst({
       where: { campaignId: id, postId: parsed.postId },
       select: { id: true },

@@ -3,6 +3,15 @@ import { InMemoryRateLimiter } from "@/lib/rate-limit";
 
 const MONTHLY_REQUEST_DEFAULT = 2000;
 
+export class AIQuotaError extends Error {
+  public retryAfterSeconds: number | null;
+  constructor(message: string, retryAfterSeconds: number | null = null) {
+    super(message);
+    this.name = "AIQuotaError";
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
 export function monthlyRequestLimit(): number {
   const raw = process.env.AI_MONTHLY_REQUEST_LIMIT;
   if (raw && /^\d+$/.test(raw)) return parseInt(raw, 10);
@@ -21,7 +30,7 @@ export async function getOrganizationMonthlyAICount(organizationId: string): Pro
 export async function assertMonthlyAIQuotaAvailable(organizationId: string): Promise<void> {
   const used = await getOrganizationMonthlyAICount(organizationId);
   if (used >= monthlyRequestLimit()) {
-    throw new Error("Monthly AI request limit reached. Upgrade your plan or wait for the next cycle.");
+    throw new AIQuotaError("Monthly AI request limit reached. Upgrade your plan or wait for the next cycle.");
   }
 }
 
@@ -30,7 +39,10 @@ const userRateLimiter = new InMemoryRateLimiter(60, 60 * 60 * 1000);
 export function assertUserAIAvailable(userId: string): void {
   const result = userRateLimiter.check(`ai:${userId}`);
   if (!result.allowed) {
-    throw new Error("AI rate limit reached. Please wait a moment before trying again.");
+    throw new AIQuotaError(
+      "AI rate limit reached. Please wait a moment before trying again.",
+      Math.ceil(result.resetMs / 1000)
+    );
   }
 }
 

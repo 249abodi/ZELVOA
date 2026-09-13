@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { encryptSecret, decryptSecret, generateOAuthState } from "@/lib/crypto";
+import { createHash } from "crypto";
+import { encryptSecret, decryptSecret, generateOAuthState, hashPassword, verifyPassword } from "@/lib/crypto";
 
 const originalKey = process.env.ENCRYPTION_KEY;
 
@@ -52,5 +53,32 @@ describe("token encryption", () => {
     const state = generateOAuthState();
     expect(state.length).toBeGreaterThanOrEqual(32);
     expect(/^[A-Za-z0-9_-]+$/.test(state)).toBe(true);
+  });
+});
+
+describe("password hashing", () => {
+  it("hashes with bcrypt and verifies correctly", () => {
+    const hash = hashPassword("correct horse battery staple");
+    expect(hash.startsWith("$2")).toBe(true);
+    expect(hash).not.toContain("correct horse battery staple");
+    expect(verifyPassword("correct horse battery staple", hash)).toBe(true);
+    expect(verifyPassword("wrong password", hash)).toBe(false);
+  });
+
+  it("produces unique hashes for the same password (random salt)", () => {
+    const a = hashPassword("same-password");
+    const b = hashPassword("same-password");
+    expect(a).not.toBe(b);
+  });
+
+  it("still verifies legacy pre-bcrypt hashes", () => {
+    const legacy = encodeURIComponent(`${"a".repeat(32)}$${createHash("sha256").update("a".repeat(32) + "legacy-password").digest("hex")}`);
+    expect(verifyPassword("legacy-password", legacy)).toBe(true);
+    expect(verifyPassword("wrong", legacy)).toBe(false);
+  });
+
+  it("returns false for malformed stored hashes", () => {
+    expect(verifyPassword("x", "not-a-valid-hash")).toBe(false);
+    expect(verifyPassword("x", "")).toBe(false);
   });
 });

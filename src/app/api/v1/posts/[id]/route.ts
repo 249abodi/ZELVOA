@@ -142,6 +142,7 @@ export async function PATCH(
         where: {
           id: { in: body.socialAccountIds },
           workspaceId,
+          status: "CONNECTED",
         },
       });
       if (accounts.length > 0 && body.scheduledFor) {

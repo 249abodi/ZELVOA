@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { getCurrentContext } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { handleApiError, unauthorized, ok, fail, parseJson } from "@/lib/api";
@@ -7,6 +8,7 @@ import { buildPrompt } from "@/lib/ai/prompts";
 import {
   assertMonthlyAIQuotaAvailable,
   assertUserAIAvailable,
+  AIQuotaError,
   recordAIUsage,
 } from "@/lib/ai/usage";
 import { AIProviderError } from "@/lib/ai/types";
@@ -81,6 +83,12 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof AIQuotaError) {
+      return NextResponse.json(
+        { error: { message: error.message } },
+        { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds ?? 60) } }
+      );
+    }
     if (error instanceof AIProviderError && (error.status === 401 || error.status === 403)) {
       return fail("The AI provider rejected the configured API key.", 502);
     }

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { decryptSecret } from "@/lib/crypto";
+import { decryptSecret, encryptSecret } from "@/lib/crypto";
 import { getProvider } from "@/lib/integrations/factory";
 import { getPlatformLimits, isPublishingImplemented } from "@/lib/integrations/platforms";
 import { getRegistryEntry } from "@/lib/integrations/registry";
@@ -226,7 +226,8 @@ export class PublishingService {
 
     if (
       refreshed.socialAccount.status === "DISCONNECTED" ||
-      refreshed.socialAccount.status === "REVOKED"
+      refreshed.socialAccount.status === "REVOKED" ||
+      refreshed.socialAccount.status === "EXPIRED"
     ) {
       const status = await finalizeFailure(refreshed, "ACCOUNT_INVALID", "PROVIDER_CONNECT", false, null);
       return { scheduledPostId: id, status, errorCode: "ACCOUNT_INVALID" };
@@ -255,8 +256,8 @@ export class PublishingService {
           await prisma.socialAccountToken.update({
             where: { socialAccountId: refreshed.socialAccount!.id },
             data: {
-              encryptedAccessToken: accessToken,
-              ...(result.refreshToken ? { encryptedRefreshToken: result.refreshToken } : {}),
+              encryptedAccessToken: encryptSecret(result.accessToken),
+              ...(result.refreshToken ? { encryptedRefreshToken: encryptSecret(result.refreshToken) } : {}),
               ...(result.expiresInSeconds ? { tokenExpiresAt: new Date(Date.now() + result.expiresInSeconds * 1000) } : {}),
             },
           });

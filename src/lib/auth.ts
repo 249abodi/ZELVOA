@@ -67,8 +67,8 @@ export async function getCurrentContext(): Promise<CurrentContext | null> {
     organization = member.organization;
     role = member.role;
     if (session.ws) {
-      const ws = await prisma.workspace.findUnique({
-        where: { id: session.ws },
+      const ws = await prisma.workspace.findFirst({
+        where: { id: session.ws, organizationId: member.organizationId },
         select: { id: true, name: true, slug: true, timezone: true },
       });
       if (ws) workspace = ws;

@@ -121,12 +121,14 @@ export default function InboxPageClient({ canReply, canAssign }: { canReply: boo
     void Promise.resolve()
       .then(() => load(new AbortController().signal))
       .catch(() => {
-        if (!cancelled) setConversations([]);
+        if (cancelled) return;
+        setConversations([]);
+        toastError("Could not load inbox.");
       });
     return () => {
       cancelled = true;
     };
-  }, [load]);
+  }, [load, toastError]);
 
   const selectThread = useCallback(
     async (id: string) => {

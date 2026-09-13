@@ -1,6 +1,18 @@
 import { createHash, createHmac, timingSafeEqual, randomBytes, createCipheriv, createDecipheriv, type CipherKey } from "crypto";
+import bcrypt from "bcryptjs";
 
-const SECRET = process.env.AUTH_SECRET || "dev-secret-do-not-use-in-prod";
+const SECRET = process.env.AUTH_SECRET || (process.env.NODE_ENV === "production" ? "" : "dev-secret-do-not-use-in-prod");
+
+const BCRYPT_ROUNDS = 10;
+const BCRYPT_PREFIX = "$2";
+
+function requireSecret(): string {
+  if (SECRET) return SECRET;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("AUTH_SECRET is not configured.");
+  }
+  return "dev-secret-do-not-use-in-prod";
+}
 
 function encryptionKey(): Buffer {
   const raw = process.env.ENCRYPTION_KEY;
@@ -47,18 +59,17 @@ export function generateOAuthState(): string {
 }
 
 export function hashPassword(password: string): string {
-  const salt = createHash("sha256").update(createHash("md5").update(`${password}${SECRET}`).digest("hex")).digest("hex").slice(0, 32);
-  return encodeURIComponent(`${salt}$${hashWithSalt(password, salt)}`);
-}
-
-function hashWithSalt(password: string, salt: string): string {
-  return createHash("sha256").update(salt + password).digest("hex");
+  return bcrypt.hashSync(password, BCRYPT_ROUNDS);
 }
 
 export function verifyPassword(password: string, stored: string): boolean {
   try {
-    const [salt, hash] = decodeURIComponent(stored).split("$");
-    const candidate = hashWithSalt(password, salt);
+    const decoded = decodeURIComponent(stored);
+    if (decoded.startsWith(BCRYPT_PREFIX)) {
+      return bcrypt.compareSync(password, decoded);
+    }
+    const [salt, hash] = decoded.split("$");
+    const candidate = legacyHashWithSalt(password, salt);
     const a = Buffer.from(hash, "hex");
     const b = Buffer.from(candidate, "hex");
     if (a.length !== b.length) return false;
@@ -68,8 +79,12 @@ export function verifyPassword(password: string, stored: string): boolean {
   }
 }
 
+function legacyHashWithSalt(password: string, salt: string): string {
+  return createHash("sha256").update(salt + password).digest("hex");
+}
+
 export function createSignature(input: string): string {
-  return createHmac("sha256", SECRET).update(input).digest("hex");
+  return createHmac("sha256", requireSecret()).update(input).digest("hex");
 }
 
 export function safeEqual(a: string, b: string): boolean {
