@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE } from "@/lib/auth";
+import { verifySession } from "@/lib/session";
 import {
   buildSecurityHeaders,
   buildCspHeader,
@@ -9,7 +10,7 @@ import {
 const PUBLIC_PATHS = ["/login", "/register"];
 const ADMIN_PATHS = ["/admin"];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const session = request.cookies.get(SESSION_COOKIE)?.value;
   const env = process.env.NODE_ENV;
@@ -36,7 +37,10 @@ export function middleware(request: NextRequest) {
 
   // If a signed-in user tries to visit auth pages, send them to the app.
   if (isPublic && session) {
-    return NextResponse.redirect(new URL("/app/dashboard", request.url));
+    const validSession = await verifySession(session);
+    if (validSession) {
+      return NextResponse.redirect(new URL("/app/dashboard", request.url));
+    }
   }
 
   if (isAppRoute && !session) {

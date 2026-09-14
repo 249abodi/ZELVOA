@@ -39,10 +39,15 @@ export default function CreatePostPage() {
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
-  const editingPostId = useState(() => {
-    if (typeof window === "undefined") return null;
-    return new URLSearchParams(window.location.search).get("edit");
-  })[0];
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const editId = new URLSearchParams(window.location.search).get("edit");
+    if (editId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setEditingPostId(editId);
+    }
+  }, []);
 
   const accountsRef = useRef<PostAccount[]>([]);
   useEffect(() => {
