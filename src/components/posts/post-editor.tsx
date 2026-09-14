@@ -40,6 +40,24 @@ export function PostEditor({
     onChange(next);
   };
 
+  const [prevInitials, setPrevInitials] = useState({
+    title: initialTitle,
+    content: initialContent,
+    postType: initialType,
+  });
+  if (initialTitle !== prevInitials.title) {
+    setPrevInitials((p) => ({ ...p, title: initialTitle }));
+    setTitle(initialTitle);
+  }
+  if (initialContent !== prevInitials.content) {
+    setPrevInitials((p) => ({ ...p, content: initialContent }));
+    setContent(initialContent);
+  }
+  if (initialType !== prevInitials.postType) {
+    setPrevInitials((p) => ({ ...p, postType: initialType }));
+    setPostType(initialType);
+  }
+
   return (
     <div className="grid gap-4">
       <div>

@@ -1,6 +1,7 @@
 import {
   AIProviderError,
   type AICompletion,
+  type AIErrorCode,
   type AIProvider,
 } from "@/lib/ai/types";
 
@@ -17,6 +18,29 @@ function configured(): { apiKey: string; baseUrl: string; model: string } | null
   };
 }
 
+export function mapProviderError(status: number | undefined): {
+  code: AIErrorCode;
+  status: number;
+  message: string;
+} {
+  if (status === 401 || status === 403) {
+    return { code: "AI_UNAUTHORIZED", status: 502, message: "The AI provider rejected the configured API key." };
+  }
+  if (status === 429) {
+    return { code: "AI_RATE_LIMITED", status: 429, message: "The AI provider is rate-limiting requests. Please try again shortly." };
+  }
+  if (status === 408) {
+    return { code: "AI_TIMEOUT", status: 504, message: "The AI provider took too long to respond." };
+  }
+  if (status === 400 || status === 404) {
+    return { code: "AI_INVALID_REQUEST", status: 400, message: "The AI provider rejected the request as invalid." };
+  }
+  if (status === 500 || status === 502 || status === 503) {
+    return { code: "AI_PROVIDER_UNAVAILABLE", status: 502, message: "The AI provider is temporarily unavailable." };
+  }
+  return { code: "AI_UNKNOWN_ERROR", status: 502, message: "The AI provider returned an unexpected error." };
+}
+
 export class OpenAIChatProvider implements AIProvider {
   readonly name = "openai";
   readonly model: string;
@@ -30,35 +54,61 @@ export class OpenAIChatProvider implements AIProvider {
   }
 
   async complete(system: string, user: string): Promise<AICompletion> {
+    return this.request(system, user, false);
+  }
+
+  async completeJSON(system: string, user: string): Promise<AICompletion> {
+    return this.request(system, user, true);
+  }
+
+  private async request(
+    system: string,
+    user: string,
+    jsonMode: boolean
+  ): Promise<AICompletion> {
     const cfg = configured();
     if (!cfg) {
       throw new AIProviderError("The AI provider is not configured.", 501);
     }
 
-    const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${cfg.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: cfg.model,
-        temperature: 0.8,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-      }),
-      signal: AbortSignal.timeout(30_000),
-    });
+    const body: Record<string, unknown> = {
+      model: this.model,
+      temperature: jsonMode ? 0.7 : 0.8,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    };
+
+    if (jsonMode) {
+      body.response_format = { type: "json_object" };
+    }
+
+    let res: Response;
+    try {
+      res = await fetch(`${cfg.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${cfg.apiKey}`,
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "TimeoutError") {
+        throw new AIProviderError("The AI provider took too long to respond.", 408);
+      }
+      throw new AIProviderError("Could not reach the AI provider.", 502);
+    }
 
     if (!res.ok) {
       let detail = `AI provider returned ${res.status}.`;
       try {
-        const body = (await res.json()) as { error?: { message?: string } };
-        if (body.error?.message) detail = body.error.message;
+        const parsed = (await res.json()) as { error?: { message?: string } };
+        if (parsed.error?.message) detail = parsed.error.message;
       } catch {
-        // ignore parse errors — keep the status detail
+        // keep default detail
       }
       throw new AIProviderError(detail, res.status);
     }

@@ -12,26 +12,38 @@ import { useToast } from "@/components/ui/toast";
 interface AIStatus {
   enabled: boolean;
   message: string;
+  code: string | null;
   model: string | null;
   monthlyUsage: number;
   monthlyLimit: number;
+  remaining: number;
 }
 
 interface GenerateResponse {
   generated: boolean;
   text?: string;
+  output?: {
+    caption?: string;
+    hashtags?: string[];
+    cta?: string;
+    ideas?: { title: string; description: string; format?: string }[];
+    rewritten?: string;
+  };
   model?: string;
   reason?: string;
-  usage?: { promptTokens: number; completionTokens: number };
+  usage?: { promptTokens: number; completionTokens: number; remaining: number };
 }
 
-const FEATURES: { value: string; label: string; hint: string }[] = [
-  { value: "captions", label: "Caption", hint: "Write a platform-native caption." },
-  { value: "hashtags", label: "Hashtags", hint: "Curated, relevant hashtags." },
-  { value: "cta", label: "Call to action", hint: "A single strong CTA line." },
-  { value: "ideas", label: "Content ideas", hint: "Fresh posting ideas from context." },
-  { value: "rewrite", label: "Rewrite", hint: "Clean up and improve your draft." },
-  { value: "tone", label: "Change tone", hint: "Rephrase the draft in a new tone." },
+type Language = "en" | "ar";
+type Feature = "captions" | "hashtags" | "cta" | "ideas" | "rewrite" | "tone";
+
+const FEATURES: { value: Feature; label: string; labelAr: string; hint: string }[] = [
+  { value: "captions", label: "Caption", labelAr: "كابشن", hint: "Write a platform-native caption." },
+  { value: "hashtags", label: "Hashtags", labelAr: "هاشتاغات", hint: "Curated, relevant hashtags." },
+  { value: "cta", label: "Call to action", labelAr: "دعوة للإجراء", hint: "A single strong CTA line." },
+  { value: "ideas", label: "Content ideas", labelAr: "أفكار محتوى", hint: "Fresh posting ideas from context." },
+  { value: "rewrite", label: "Rewrite", labelAr: "إعادة كتابة", hint: "Clean up and improve your draft." },
+  { value: "tone", label: "Change tone", labelAr: "تغيير النغمة", hint: "Rephrase the draft in a new tone." },
 ];
 
 const PLATFORMS = [
@@ -61,19 +73,94 @@ const LENGTHS = [
   { value: "long", label: "Long" },
 ];
 
+const TEXT: Record<Language, Record<string, string>> = {
+  en: {
+    "task": "Task",
+    "platform": "Platform",
+    "language": "Language",
+    "tone": "Tone",
+    "length": "Length",
+    "options": "Options",
+    "content": "Your content or context",
+    "generate": "Generate",
+    "regenerate": "Regenerate",
+    "copy": "Copy",
+    "clear": "Clear",
+    "output": "Output",
+    "generated": "AI generated",
+    "loading": "Generating…",
+    "empty": "Generated content appears here.",
+    "monthly-usage": "Monthly AI usage",
+    "model": "Model",
+    "ideas-title": "Content ideas",
+    "ideas-format": "Format",
+  },
+  ar: {
+    "task": "المهمة",
+    "platform": "المنصة",
+    "language": "اللغة",
+    "tone": "النغمة",
+    "length": "الطول",
+    "options": "الخيارات",
+    "content": "المحتوى أو السياق",
+    "generate": "توليد",
+    "regenerate": "إعادة التوليد",
+    "copy": "نسخ",
+    "clear": "مسح",
+    "output": "الناتج",
+    "generated": "تم التوليد بالذكاء الاصطناعي",
+    "loading": "جارٍ التوليد…",
+    "empty": "يظهر المحتوى المولَّد هنا.",
+    "monthly-usage": "الاستخدام الشهري للذكاء الاصطناعي",
+    "model": "النموذج",
+    "ideas-title": "أفكار المحتوى",
+    "ideas-format": "الصيغة",
+  },
+};
+
+function errorMessage(lang: Language, code: string | undefined, fallback: string): string {
+  const ar: Record<string, string> = {
+    AI_NOT_CONFIGURED: "لم يتم إعداد الذكاء الاصطناعي بعد.",
+    AI_UNAUTHORIZED: "رفض مزود الذكاء الاصطناعي المفتاح المضبوط.",
+    AI_RATE_LIMITED: "تم تجاوز حد الاستخدام. حاول مجددًا بعد قليل.",
+    AI_PROVIDER_UNAVAILABLE: "مزود الذكاء الاصطناعي غير متاح حاليًا.",
+    AI_INVALID_REQUEST: "طلباتك غير صالحة. حاول تعديلها.",
+    AI_TIMEOUT: "استغرق مزود الذكاء الاصطناعي وقتًا طويلًا.",
+  };
+  if (lang === "ar" && code && ar[code]) return ar[code];
+  return fallback;
+}
+
+function toDisplayText(result: GenerateResponse | null): string {
+  if (!result?.text) return "";
+  const o = result.output;
+  if (!o) return result.text;
+  if (o.caption) return o.caption;
+  if (o.hashtags) return o.hashtags.join(" ");
+  if (o.cta) return o.cta;
+  if (o.rewritten) return o.rewritten;
+  if (o.ideas) return o.ideas.map((i) => i.title).join("\n");
+  return result.text;
+}
+
 export default function AIPage() {
   const { toastSuccess, toastError } = useToast();
   const [status, setStatus] = useState<AIStatus | null>(null);
   const [loaded, setLoaded] = useState(false);
 
-  const [feature, setFeature] = useState("captions");
+  const [feature, setFeature] = useState<Feature>("captions");
   const [platform, setPlatform] = useState("");
+  const [language, setLanguage] = useState<Language>("en");
   const [tone, setTone] = useState("");
   const [length, setLength] = useState("");
   const [count, setCount] = useState(1);
   const [content, setContent] = useState("");
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<GenerateResponse | null>(null);
+
+  const isArabic = language === "ar";
+  const dir = isArabic ? "rtl" : "ltr";
+  const t = (key: string) => TEXT[language][key] ?? TEXT.en[key] ?? key;
 
   useEffect(() => {
     let cancelled = false;
@@ -85,7 +172,7 @@ export default function AIPage() {
         if (!cancelled) setStatus(data.data);
       })
       .catch(() => {
-        if (!cancelled) setStatus({ enabled: false, message: "Could not load AI status.", model: null, monthlyUsage: 0, monthlyLimit: 0 });
+        if (!cancelled) setStatus({ enabled: false, message: "Could not load AI status.", code: null, model: null, monthlyUsage: 0, monthlyLimit: 0, remaining: 0 });
       })
       .finally(() => {
         if (!cancelled) setLoaded(true);
@@ -110,65 +197,82 @@ export default function AIPage() {
           feature,
           content: content.trim() || undefined,
           platform: platform || undefined,
+          language,
           tone: tone || undefined,
           length: length || undefined,
           count: count > 1 ? count : undefined,
         }),
       });
-      const data = (await res.json()) as { data?: GenerateResponse; error?: { message?: string } };
-      if (!res.ok || data.data?.generated === false) {
-        const msg = data.error?.message ?? data.data?.reason ?? "Generation failed.";
-        if (res.status === 501) {
-          toastError("AI not configured", msg);
-        } else {
-          toastError("Generation failed", msg);
-        }
-        if (data.data) setResult(data.data);
+      const data = (await res.json()) as {
+        data?: GenerateResponse;
+        error?: { message?: string; code?: string };
+      };
+      if (!res.ok) {
+        const code = data.error?.code;
+        const msg = data.error?.message ?? "Generation failed.";
+        const localized = errorMessage(language, code, msg);
+        toastError("Generation failed", localized);
+        return;
+      }
+      if (data.data?.generated === false) {
+        const msg = data.data.reason ?? "Generation failed.";
+        const localized = errorMessage(language, undefined, msg);
+        toastError("AI not configured", localized);
         return;
       }
       setResult(data.data ?? null);
-      if (data.data) toastSuccess("Generated");
+      toastSuccess("Generated");
     } catch {
-      toastError("Generation failed", "Could not reach the server.");
+      toastError("Generation failed", errorMessage(language, undefined, "Could not reach the server."));
     } finally {
       setGenerating(false);
     }
-  }, [feature, platform, tone, length, count, content, toastSuccess, toastError]);
+  }, [feature, platform, tone, length, count, content, language, toastSuccess, toastError]);
 
   const copyResult = useCallback(async () => {
-    if (!result?.text) return;
+    const text = toDisplayText(result);
+    if (!text) return;
     try {
-      await navigator.clipboard.writeText(result.text);
+      await navigator.clipboard.writeText(text);
       toastSuccess("Copied to clipboard");
     } catch {
       toastError("Copy failed", "Clipboard access is not available.");
     }
   }, [result, toastSuccess, toastError]);
 
+  const clearResult = useCallback(() => {
+    setResult(null);
+  }, []);
+
   const usagePct = status && status.monthlyLimit > 0
     ? Math.min(100, Math.round((status.monthlyUsage / status.monthlyLimit) * 100))
     : 0;
 
+  const displayText = toDisplayText(result);
+  const output = result?.output;
+
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6" dir={dir}>
       <PageHeader
-        title="AI Assistant"
-        description="Write captions, hashtags, CTAs, and content ideas with an AI copywriter. Every generation is recorded for usage."
+        title={isArabic ? "مساعد الذكاء الاصطناعي" : "AI Assistant"}
+        description={isArabic
+          ? "اكتب كابشنات وهاشتاغات ودعوات إجراء وأفكار محتوى. كل عملية توليد تُسجَّل."
+          : "Write captions, hashtags, CTAs, and content ideas with an AI copywriter. Every generation is recorded for usage."}
         icon="sparkles"
-        badge={status?.enabled ? "Connected" : undefined}
+        badge={status?.enabled ? (isArabic ? "متصل" : "Connected") : undefined}
       />
 
       {!loaded ? (
         <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-6 text-sm text-muted-foreground">
           <Icon name="spinner" size={18} className="animate-spin text-primary" />
-          Loading AI status…
+          {isArabic ? "جارٍ تحميل حالة الذكاء الاصطناعي…" : "Loading AI status…"}
         </div>
       ) : status?.enabled ? (
         <>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-xl border border-border bg-card p-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Monthly AI usage</p>
+                <p className="text-sm font-medium">{t("monthly-usage")}</p>
                 <Badge variant="secondary">
                   {status.monthlyUsage.toLocaleString()} / {status.monthlyLimit.toLocaleString()}
                 </Badge>
@@ -180,13 +284,15 @@ export default function AIPage() {
                 />
               </div>
               {usagePct >= 90 && (
-                <p className="mt-2 text-xs text-warning">You are close to your monthly AI limit.</p>
+                <p className="mt-2 text-xs text-warning">
+                  {isArabic ? "اقتربت من الحد الشهري للذكاء الاصطناعي." : "You are close to your monthly AI limit."}
+                </p>
               )}
             </div>
             <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
               <Icon name="zap" size={18} className="text-primary" />
               <div>
-                <p className="font-medium text-foreground">Model: {status.model ?? "default"}</p>
+                <p className="font-medium text-foreground">{t("model")}: {status.model ?? "default"}</p>
                 <p className="text-xs">{status.message}</p>
               </div>
             </div>
@@ -196,16 +302,16 @@ export default function AIPage() {
             <div className="grid gap-4 rounded-xl border border-border bg-card p-5">
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="grid gap-1.5">
-                  <Label htmlFor="feature">Task</Label>
+                  <Label htmlFor="feature">{t("task")}</Label>
                   <Select
                     id="feature"
                     value={feature}
-                    onChange={(e) => setFeature(e.target.value)}
-                    options={FEATURES.map((f) => ({ value: f.value, label: f.label }))}
+                    onChange={(e) => setFeature(e.target.value as Feature)}
+                    options={FEATURES.map((f) => ({ value: f.value, label: isArabic ? f.labelAr : f.label }))}
                   />
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor="platform">Platform</Label>
+                  <Label htmlFor="platform">{t("platform")}</Label>
                   <Select
                     id="platform"
                     value={platform}
@@ -214,9 +320,21 @@ export default function AIPage() {
                   />
                 </div>
               </div>
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div className="grid gap-2 sm:grid-cols-2">
                 <div className="grid gap-1.5">
-                  <Label htmlFor="tone">Tone</Label>
+                  <Label htmlFor="language">{t("language")}</Label>
+                  <Select
+                    id="language"
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value as Language)}
+                    options={[
+                      { value: "en", label: "English" },
+                      { value: "ar", label: "العربية" },
+                    ]}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="tone">{t("tone")}</Label>
                   <Select
                     id="tone"
                     value={tone}
@@ -224,8 +342,10 @@ export default function AIPage() {
                     options={TONES}
                   />
                 </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
                 <div className="grid gap-1.5">
-                  <Label htmlFor="length">Length</Label>
+                  <Label htmlFor="length">{t("length")}</Label>
                   <Select
                     id="length"
                     value={length}
@@ -234,17 +354,17 @@ export default function AIPage() {
                   />
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor="count">Options</Label>
+                  <Label htmlFor="count">{t("options")}</Label>
                   <Select
                     id="count"
                     value={String(count)}
                     onChange={(e) => setCount(parseInt(e.target.value, 10))}
-                    options={[1, 2, 3].map((n) => ({ value: String(n), label: `${n} option${n > 1 ? "s" : ""}` }))}
+                    options={[1, 2, 3].map((n) => ({ value: String(n), label: `${isArabic ? "خيار" : "option"}${n > 1 ? (isArabic ? "ات" : "s") : ""}` }))}
                   />
                 </div>
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="content">Your content or context</Label>
+                <Label htmlFor="content">{t("content")}</Label>
                 <textarea
                   id="content"
                   value={content}
@@ -256,32 +376,68 @@ export default function AIPage() {
                 <p className="text-right text-xs text-muted-foreground">{content.length.toLocaleString()}</p>
               </div>
               <Button onClick={generate} loading={generating} icon="sparkles" className="w-full">
-                Generate
+                {generating ? t("loading") : result ? t("regenerate") : t("generate")}
               </Button>
             </div>
 
             <div className="flex flex-col rounded-xl border border-border bg-card">
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                <p className="text-sm font-medium">Output</p>
+                <p className="text-sm font-medium">{t("output")}</p>
                 {result && (
                   <Badge variant="secondary">
                     <Icon name="sparkles" size={12} />
-                    AI generated
+                    {t("generated")}
                   </Badge>
                 )}
               </div>
               <div className="flex-1 whitespace-pre-wrap p-4 text-sm leading-relaxed">
-                {result?.text ?? (generating ? "Generating…" : "Generated content appears here.")}
+                {generating ? (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Icon name="spinner" size={16} className="animate-spin" />
+                    {t("loading")}
+                  </div>
+                ) : output?.hashtags ? (
+                  <div className="flex flex-wrap gap-2">
+                    {output.hashtags.map((h) => (
+                      <Badge key={h} variant="secondary">{h}</Badge>
+                    ))}
+                  </div>
+                ) : output?.ideas ? (
+                  <ul className="grid gap-3">
+                    {output.ideas.map((idea, i) => (
+                      <li key={`${idea.title}-${i}`} className="rounded-lg border border-border bg-background-subtle p-3">
+                        <p className="font-medium">{idea.title}</p>
+                        {idea.description && (
+                          <p className="mt-1 text-xs text-muted-foreground">{idea.description}</p>
+                        )}
+                        {idea.format && (
+                          <Badge variant="outline" className="mt-2">{idea.format}</Badge>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : displayText ? (
+                  displayText
+                ) : (
+                  <div className="flex h-full items-center justify-center text-muted-foreground">
+                    {t("empty")}
+                  </div>
+                )}
               </div>
-              {result?.text && (
+              {displayText && (
                 <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-3">
                   <span className="text-xs text-muted-foreground">
-                    {result.model && `Model: ${result.model}`}
-                    {result.usage ? ` · ${result.usage.promptTokens + result.usage.completionTokens} tokens` : ""}
+                    {result?.model && `${t("model")}: ${result.model}`}
+                    {result?.usage ? ` · ${result.usage.promptTokens + result.usage.completionTokens} tokens · ${result.usage.remaining} left` : ""}
                   </span>
-                  <Button variant="outline" size="sm" icon="save" onClick={copyResult}>
-                    Copy
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" icon="trash" onClick={clearResult}>
+                      {t("clear")}
+                    </Button>
+                    <Button variant="outline" size="sm" icon="save" onClick={copyResult}>
+                      {t("copy")}
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -292,7 +448,9 @@ export default function AIPage() {
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
             <Icon name="sparkles" size={26} />
           </div>
-          <h3 className="text-base font-semibold">AI assistant is not connected</h3>
+          <h3 className="text-base font-semibold">
+            {isArabic ? "مساعد الذكاء الاصطناعي غير متصل" : "AI assistant is not connected"}
+          </h3>
           <p className="mx-auto max-w-md text-sm text-muted-foreground">{status?.message}</p>
         </div>
       )}

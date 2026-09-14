@@ -22,9 +22,11 @@ export async function GET() {
       message: enabled
         ? "AI provider connected."
         : aiConfigHint(),
+      code: enabled ? null : "AI_NOT_CONFIGURED",
       model: provider?.model ?? null,
       monthlyUsage: monthly,
       monthlyLimit: monthlyRequestLimit(),
+      remaining: Math.max(0, monthlyRequestLimit() - monthly),
     });
   } catch (error) {
     return handleApiError(error);

@@ -10,10 +10,10 @@ export function created<T>(data: T) {
   return NextResponse.json({ data }, { status: 201 });
 }
 
-export function fail(message: string, status = 400, details?: unknown) {
+export function fail(message: string, status = 400, details?: unknown, headers?: HeadersInit) {
   return NextResponse.json(
-    { error: { message, ...(details ? { details } : {}) } },
-    { status }
+    { error: { message, ...(details && typeof details === "object" ? details : {}) } },
+    { status, headers }
   );
 }
 

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { InMemoryRateLimiter } from "@/lib/rate-limit";
+import type { AIErrorCode } from "@/lib/ai/types";
 
 const MONTHLY_REQUEST_DEFAULT = 2000;
 
@@ -23,7 +24,7 @@ export async function getOrganizationMonthlyAICount(organizationId: string): Pro
   start.setUTCDate(1);
   start.setUTCHours(0, 0, 0, 0);
   return prisma.aIUsageRecord.count({
-    where: { organizationId, createdAt: { gte: start } },
+    where: { organizationId, createdAt: { gte: start }, status: "SUCCESS" },
   });
 }
 
@@ -49,10 +50,14 @@ export function assertUserAIAvailable(userId: string): void {
 export interface UsageInput {
   userId: string;
   organizationId: string | null;
+  workspaceId: string | null;
   feature: string;
   modelName: string;
   promptTokens: number;
   completionTokens: number;
+  status: "SUCCESS" | "FAILED";
+  errorCode: AIErrorCode | null;
+  durationMs: number;
 }
 
 export async function recordAIUsage(input: UsageInput): Promise<void> {
@@ -60,16 +65,19 @@ export async function recordAIUsage(input: UsageInput): Promise<void> {
     data: {
       userId: input.userId,
       organizationId: input.organizationId,
+      workspaceId: input.workspaceId,
       feature: input.feature,
       modelName: input.modelName,
       promptTokens: input.promptTokens,
       completionTokens: input.completionTokens,
       costEstimate: estimateCost(input.modelName, input.promptTokens, input.completionTokens),
+      status: input.status,
+      errorCode: input.errorCode,
+      durationMs: input.durationMs,
     },
   });
 }
 
-/** Rough per-1K-token pricing used only for the usage meter (never billed). */
 function estimateCost(model: string, prompt: number, completion: number): number | null {
   const isMini = model.toLowerCase().includes("mini");
   const inputPer1k = isMini ? 0.00015 : 0.005;

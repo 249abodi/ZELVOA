@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { LoadingState, ErrorState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { PostEditor } from "@/components/posts/post-editor";
+import { ComposerAIPanel } from "@/components/posts/ai-composer-panel";
 import { PlatformSelector, type PostAccount } from "@/components/posts/post-platform-selector";
 import { PostMediaPicker } from "@/components/posts/post-media-picker";
 import { getPlatformLimits } from "@/lib/integrations/platforms";
@@ -270,6 +271,23 @@ export default function CreatePostPage() {
                 />
               </CardContent>
             </Card>
+
+            <ComposerAIPanel
+              content={content}
+              platform={selectedAccounts[0]
+                ? accounts.find((a) => a.id === selectedAccounts[0])?.platform as string | undefined
+                : undefined}
+              onInsertText={(text) => {
+                setContent(text);
+                handleEditorChange({ title, content: text, postType });
+              }}
+              onAppendHashtags={(tags) => {
+                const current = content.trim();
+                const next = current ? `${current}\n\n${tags.join(" ")}` : tags.join(" ");
+                setContent(next);
+                handleEditorChange({ title, content: next, postType });
+              }}
+            />
 
             <Card>
               <CardContent className="grid gap-4 p-5 pt-5">

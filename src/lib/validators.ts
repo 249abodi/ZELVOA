@@ -195,6 +195,7 @@ export const aiGenerateSchema = z.object({
     .enum(["professional", "friendly", "luxury", "playful", "bold", "neutral"])
     .optional(),
   platform: platformEnum.optional(),
+  language: z.enum(["en", "ar"]).optional().default("en"),
   length: z.enum(["short", "medium", "long"]).optional(),
   count: z.number().int().min(1).max(6).optional(),
 });

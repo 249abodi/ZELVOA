@@ -810,20 +810,26 @@ model LicenseKey {
 // ───────────────────────────── AI ─────────────────────────────
 
 model AIUsageRecord {
-  id             String   @id @default(cuid())
-  userId         String
-  organizationId String?
-  feature        String
-  modelName      String?
-  promptTokens   Int      @default(0)
-  completionTokens Int    @default(0)
-  costEstimate   Float?
-  createdAt      DateTime @default(now())
+  id               String   @id @default(cuid())
+  userId           String
+  organizationId   String?
+  workspaceId      String?
+  feature          String
+  modelName        String?
+  promptTokens     Int      @default(0)
+  completionTokens Int      @default(0)
+  costEstimate     Float?
+  status           String   @default("SUCCESS")
+  errorCode        String?
+  durationMs       Int?
+  createdAt        DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, createdAt])
   @@index([userId, createdAt])
+  @@index([workspaceId, createdAt])
+  @@index([status, organizationId, createdAt])
 }
 
 // ───────────────────────────── AUDIT ─────────────────────────────
