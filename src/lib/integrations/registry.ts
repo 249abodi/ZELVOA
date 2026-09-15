@@ -24,14 +24,14 @@ export function getProviderCredentials(platform: Platform): {
     const meta = getPlatformMeta("INSTAGRAM");
     const unified = getProviderCredentials("FACEBOOK");
     if (unified) return unified;
-    const clientId = process.env[meta.envClientId];
-    const clientSecret = process.env[meta.envClientSecret];
+    const clientId = process.env[meta.envClientId]?.trim();
+    const clientSecret = process.env[meta.envClientSecret]?.trim();
     if (clientId && clientSecret) return { clientId, clientSecret };
     return null;
   }
   const meta = getPlatformMeta(platform);
-  const clientId = process.env[meta.envClientId];
-  const clientSecret = process.env[meta.envClientSecret];
+  const clientId = process.env[meta.envClientId]?.trim();
+  const clientSecret = process.env[meta.envClientSecret]?.trim();
   if (clientId && clientSecret) {
     return { clientId, clientSecret };
   }

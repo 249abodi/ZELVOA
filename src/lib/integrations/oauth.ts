@@ -1,9 +1,29 @@
 import type { OAuthState } from "@prisma/client";
+import { PublishingError } from "@/lib/publishing/errors";
 
 export interface StateError {
   error?: string;
   record?: OAuthState;
   missing?: boolean;
+}
+
+export function oauthCallbackCode(error: unknown): string {
+  if (error instanceof PublishingError) {
+    switch (error.code) {
+      case "AUTH_EXPIRED":
+      case "NOT_CONFIGURED":
+        return "oauth_token_exchange_failed";
+      case "PROVIDER_PERMISSION":
+        return "oauth_discovery_failed";
+      case "PROVIDER_RATE_LIMITED":
+        return "provider_rate_limited";
+      case "PROVIDER_DUPLICATE":
+      case "PROVIDER_ERROR":
+      default:
+        return "provider_api_error";
+    }
+  }
+  return "provider_error";
 }
 
 /**

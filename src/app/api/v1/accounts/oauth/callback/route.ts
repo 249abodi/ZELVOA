@@ -9,7 +9,7 @@ import { markDev, isDevMarkerScope } from "@/lib/integrations/dev-provider";
 import { redactError } from "@/lib/integrations/redact";
 import { writeAudit } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications/service";
-import { assessOAuthState, buildAccountsRedirect } from "@/lib/integrations/oauth";
+import { assessOAuthState, buildAccountsRedirect, oauthCallbackCode } from "@/lib/integrations/oauth";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -51,8 +51,14 @@ export async function GET(request: Request) {
 
     if (body.error) {
       await prisma.oAuthState.delete({ where: { id: record.id } });
-      const message = body.error_description || body.error;
-      return redirectToApp(body.state, message);
+      console.info("[oauth-callback] provider denied the request", {
+        platform: record.platform,
+        code: body.error,
+      });
+      return redirectToApp(
+        body.state,
+        body.error === "access_denied" ? "oauth_access_denied" : "oauth_denied"
+      );
     }
 
     if (assessed.error) {
@@ -219,6 +225,6 @@ export async function GET(request: Request) {
         } as never,
       }).catch(() => undefined);
     }
-    return redirectToApp(body.state, "provider_error");
+    return redirectToApp(body.state, oauthCallbackCode(error));
   }
 }

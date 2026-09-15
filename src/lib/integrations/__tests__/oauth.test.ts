@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { assessOAuthState, buildAccountsRedirect } from "@/lib/integrations/oauth";
+import {
+  assessOAuthState,
+  buildAccountsRedirect,
+  oauthCallbackCode,
+} from "@/lib/integrations/oauth";
+import { PublishingError, type PublishingErrorCode } from "@/lib/publishing/errors";
 import type { OAuthState } from "@prisma/client";
 
 function makeState(overrides: Partial<OAuthState> = {}): OAuthState {
@@ -73,5 +78,43 @@ describe("buildAccountsRedirect", () => {
     const url = buildAccountsRedirect("s1", { base: "http://localhost:3000", connected: true });
     expect(url).not.toContain("code=");
     expect(url).not.toContain("dev_token=");
+  });
+});
+
+describe("oauthCallbackCode", () => {
+  function publishError(code: PublishingErrorCode): PublishingError {
+    return new PublishingError({
+      code,
+      stage: "PROVIDER_AUTH",
+      message: "boom",
+      retryable: false,
+    });
+  }
+
+  it.each([
+    ["AUTH_EXPIRED", "oauth_token_exchange_failed"],
+    ["NOT_CONFIGURED", "oauth_token_exchange_failed"],
+    ["PROVIDER_PERMISSION", "oauth_discovery_failed"],
+    ["PROVIDER_RATE_LIMITED", "provider_rate_limited"],
+    ["PROVIDER_ERROR", "provider_api_error"],
+  ] as const)("maps %s to %s", (code, expected) => {
+    expect(oauthCallbackCode(publishError(code))).toBe(expected);
+  });
+
+  it("falls back to provider_error for unknown errors", () => {
+    expect(oauthCallbackCode(new Error("network down"))).toBe("provider_error");
+    expect(oauthCallbackCode(undefined)).toBe("provider_error");
+  });
+
+  it("never leaks the underlying error message", () => {
+    const mapped = oauthCallbackCode(
+      new PublishingError({
+        code: "PROVIDER_ERROR",
+        stage: "PROVIDER_AUTH",
+        message: "secret-looking-detail",
+        retryable: true,
+      })
+    );
+    expect(mapped).not.toContain("secret-looking-detail");
   });
 });

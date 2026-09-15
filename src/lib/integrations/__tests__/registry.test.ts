@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import {
   getRegistryEntry,
+  getProviderCredentials,
   areDevProvidersAllowed,
   isProduction,
   getPlatformBaseUrl,
@@ -78,6 +79,27 @@ describe("provider registry gating", () => {
     vi.stubEnv("INSTAGRAM_CLIENT_SECRET", "");
     vi.stubEnv("ALLOW_DEV_PROVIDERS", "false");
     expect(getRegistryEntry("INSTAGRAM").configured).toBe(false);
+  });
+
+  it("treats whitespace-only credentials as missing configuration", () => {
+    envKeys.forEach((k) => vi.stubEnv(k, ""));
+    vi.stubEnv("FACEBOOK_CLIENT_ID", "   ");
+    vi.stubEnv("FACEBOOK_CLIENT_SECRET", "\t");
+    vi.stubEnv("ALLOW_DEV_PROVIDERS", "false");
+    expect(getRegistryEntry("FACEBOOK").configured).toBe(false);
+    expect(getRegistryEntry("INSTAGRAM").configured).toBe(false);
+    expect(getProviderCredentials("FACEBOOK")).toBeNull();
+  });
+
+  it("trims surrounding whitespace from configured credentials", () => {
+    envKeys.forEach((k) => vi.stubEnv(k, ""));
+    vi.stubEnv("FACEBOOK_CLIENT_ID", "  fb-id  ");
+    vi.stubEnv("FACEBOOK_CLIENT_SECRET", "  fb-secret\n");
+    expect(getProviderCredentials("FACEBOOK")).toEqual({
+      clientId: "fb-id",
+      clientSecret: "fb-secret",
+    });
+    expect(getRegistryEntry("INSTAGRAM").configured).toBe(true);
   });
 });
 
