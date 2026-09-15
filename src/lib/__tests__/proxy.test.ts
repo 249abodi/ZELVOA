@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { NextRequest, type NextResponse } from "next/server";
-import { middleware } from "@/middleware";
+import { proxy } from "@/proxy";
 import { SESSION_COOKIE } from "@/lib/auth";
 import { signSession } from "@/lib/session";
 
@@ -18,11 +18,11 @@ function makeRequest(path: string, cookie?: string): NextRequest {
   return new NextRequest(`http://localhost${path}`, { headers });
 }
 
-async function responseStatus(res: Awaited<ReturnType<typeof middleware>>) {
+async function responseStatus(res: Awaited<ReturnType<typeof proxy>>) {
   return (res as NextResponse).status;
 }
 
-describe("middleware auth redirects", () => {
+describe("proxy auth redirects", () => {
   beforeEach(() => {
     process.env.AUTH_SECRET = TEST_SECRET;
   });
@@ -32,12 +32,12 @@ describe("middleware auth redirects", () => {
   });
 
   test("renders the login page when no session cookie is present", async () => {
-    const res = await middleware(makeRequest("/login"));
+    const res = await proxy(makeRequest("/login"));
     expect(await responseStatus(res)).toBe(200);
   });
 
   test("redirects unauthenticated app requests to login", async () => {
-    const res = await middleware(makeRequest("/app/dashboard"));
+    const res = await proxy(makeRequest("/app/dashboard"));
     expect(await responseStatus(res)).toBe(307);
     expect(res.headers.get("location")).toBe(
       "http://localhost/login?next=%2Fapp%2Fdashboard"
@@ -45,7 +45,7 @@ describe("middleware auth redirects", () => {
   });
 
   test("renders login with an invalid session cookie instead of bouncing to the app", async () => {
-    const res = await middleware(
+    const res = await proxy(
       makeRequest("/login", "eyJhbGciOiJIUzI1NiJ9.invalid.token")
     );
     expect(await responseStatus(res)).toBe(200);
@@ -53,13 +53,13 @@ describe("middleware auth redirects", () => {
 
   test("redirects signed-in users away from the login page", async () => {
     const token = await signSession({ sub: "user-1", org: "org-1", ws: "ws-1", role: "OWNER" });
-    const res = await middleware(makeRequest("/login", token));
+    const res = await proxy(makeRequest("/login", token));
     expect(await responseStatus(res)).toBe(307);
     expect(res.headers.get("location")).toBe("http://localhost/app/dashboard");
   });
 
   test("invalid session cookie on app routes passes through for server-side rejection", async () => {
-    const res = await middleware(
+    const res = await proxy(
       makeRequest("/app/dashboard", "eyJhbGciOiJIUzI1NiJ9.invalid.token")
     );
     expect(await responseStatus(res)).toBe(200);
