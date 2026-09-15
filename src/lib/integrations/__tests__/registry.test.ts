@@ -3,6 +3,8 @@ import {
   getRegistryEntry,
   areDevProvidersAllowed,
   isProduction,
+  getPlatformBaseUrl,
+  resolvePublicBaseUrl,
 } from "@/lib/integrations/registry";
 
 const envKeys = [
@@ -19,6 +21,7 @@ const envKeys = [
   "YOUTUBE_CLIENT_ID",
   "YOUTUBE_CLIENT_SECRET",
   "ALLOW_DEV_PROVIDERS",
+  "NEXT_PUBLIC_APP_URL",
   "NODE_ENV",
 ];
 
@@ -75,5 +78,51 @@ describe("provider registry gating", () => {
     vi.stubEnv("INSTAGRAM_CLIENT_SECRET", "");
     vi.stubEnv("ALLOW_DEV_PROVIDERS", "false");
     expect(getRegistryEntry("INSTAGRAM").configured).toBe(false);
+  });
+});
+
+describe("public base URL resolution", () => {
+  it("uses the request origin first even when the env var is missing", () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
+    expect(getPlatformBaseUrl("https://zelvoa.vercel.app")).toBe(
+      "https://zelvoa.vercel.app"
+    );
+  });
+
+  it("prefers the request origin over a configured env base", () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://zelvoa.vercel.app");
+    expect(getPlatformBaseUrl("https://preview.zelvoa.vercel.app")).toBe(
+      "https://preview.zelvoa.vercel.app"
+    );
+  });
+
+  it("falls back to the configured env base when no request origin is provided", () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://zelvoa.vercel.app");
+    expect(getPlatformBaseUrl()).toBe("https://zelvoa.vercel.app");
+  });
+
+  it("ignores a blank or whitespace-only env value", () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "   ");
+    expect(resolvePublicBaseUrl(undefined)).toBe("http://localhost:3000");
+  });
+
+  it("ignores a non-URL env value instead of throwing", () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "not a url");
+    expect(resolvePublicBaseUrl("https://zelvoa.vercel.app")).toBe(
+      "https://zelvoa.vercel.app"
+    );
+  });
+
+  it("normalises the request origin through the URL parser", () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
+    expect(resolvePublicBaseUrl("https://zelvoa.vercel.app/x")).toBe(
+      "https://zelvoa.vercel.app"
+    );
+  });
+
+  it("only accepts http(s) schemes", () => {
+    expect(resolvePublicBaseUrl("javascript:alert(1)")).toBe(
+      "http://localhost:3000"
+    );
   });
 });

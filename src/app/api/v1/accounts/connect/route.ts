@@ -34,7 +34,8 @@ export async function POST(request: Request) {
 
     const state = generateOAuthState();
     const redirectUri =
-      body.redirectUri ?? `${getPlatformBaseUrl()}/api/v1/accounts/oauth/callback`;
+      body.redirectUri ??
+      `${getPlatformBaseUrl(new URL(request.url).origin)}/api/v1/accounts/oauth/callback`;
 
     const ttlMinutes = 10;
     await prisma.oAuthState.create({

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentContext } from "@/lib/auth";
 import { callbackQuerySchema } from "@/lib/validators";
 import { getProvider } from "@/lib/integrations/factory";
+import { getPlatformBaseUrl } from "@/lib/integrations/registry";
 import { encryptSecret } from "@/lib/crypto";
 import { markDev, isDevMarkerScope } from "@/lib/integrations/dev-provider";
 import { redactError } from "@/lib/integrations/redact";
@@ -10,15 +11,17 @@ import { writeAudit } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications/service";
 import { assessOAuthState, buildAccountsRedirect } from "@/lib/integrations/oauth";
 
-function redirectToApp(state: string, error?: string) {
-  const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  return NextResponse.redirect(
-    buildAccountsRedirect(state, { base, error, connected: !error })
-  );
-}
-
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
+  const requestUrl = new URL(request.url);
+  const base = getPlatformBaseUrl(requestUrl.origin);
+  const { searchParams } = requestUrl;
+
+  function redirectToApp(state: string, error?: string) {
+    return NextResponse.redirect(
+      buildAccountsRedirect(state, { base, error, connected: !error })
+    );
+  }
+
   const raw = {
     platform: searchParams.get("platform") ?? "",
     state: searchParams.get("state") ?? "",

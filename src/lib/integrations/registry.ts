@@ -70,6 +70,22 @@ export function listProviderEntries(): RegistryEntry[] {
   return ALL_PLATFORMS.map((p) => getRegistryEntry(p));
 }
 
-export function getPlatformBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+export function resolvePublicBaseUrl(candidate?: string | null): string {
+  const source =
+    (candidate ?? "").trim() || process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
+  if (source) {
+    try {
+      const url = new URL(source);
+      if (url.protocol === "https:" || url.protocol === "http:") {
+        return url.origin;
+      }
+    } catch {
+      // invalid configured base falls through to the next source
+    }
+  }
+  return "http://localhost:3000";
+}
+
+export function getPlatformBaseUrl(origin?: string): string {
+  return resolvePublicBaseUrl(origin);
 }
