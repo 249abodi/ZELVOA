@@ -1,18 +1,11 @@
 import jwt from "jsonwebtoken";
+import { requireAuthSecret } from "@/lib/auth-secret";
 
 export interface SessionPayload {
   sub: string;
   org?: string;
   ws?: string;
   role?: string;
-}
-
-function requireSecret(): string {
-  if (process.env.AUTH_SECRET) return process.env.AUTH_SECRET;
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("AUTH_SECRET is not configured.");
-  }
-  return "dev-secret-do-not-use-in-prod";
 }
 
 export const TTL_DAYS = Number(process.env.SESSION_TTL_DAYS || 30);
@@ -24,14 +17,14 @@ export async function signSession(payload: SessionPayload): Promise<string> {
       ws: payload.ws,
       role: payload.role,
     },
-    requireSecret(),
+    requireAuthSecret(),
     { subject: payload.sub, expiresIn: `${TTL_DAYS}d` }
   );
 }
 
 export async function verifySession(token: string): Promise<SessionPayload | null> {
   try {
-    const decoded = jwt.verify(token, requireSecret());
+    const decoded = jwt.verify(token, requireAuthSecret());
     if (typeof decoded === "string") return null;
     return {
       sub: decoded.sub ?? "",

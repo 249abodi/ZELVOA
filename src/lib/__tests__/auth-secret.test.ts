@@ -107,4 +107,45 @@ describe("crypto signature (media URLs) uses the same auth secret", () => {
     expect(signature).toBeTruthy();
     expect(cryptoMod.safeEqual(cryptoMod.createSignature("media:123"), signature)).toBe(true);
   });
+
+  test("crypto reads AUTH_SECRET at call time and never caches it at module load", async () => {
+    setProductionEnvironment(TEST_SECRET);
+    vi.resetModules();
+    const cryptoMod = await import("@/lib/crypto");
+    expect(() => cryptoMod.createSignature("media:123")).not.toThrow();
+
+    vi.stubEnv("AUTH_SECRET", "");
+    expect(() => cryptoMod.createSignature("media:123")).toThrow(
+      "AUTH_SECRET is not configured."
+    );
+  });
+
+  test("session signing and media signatures resolve the same configured secret", async () => {
+    setProductionEnvironment(TEST_SECRET);
+    vi.resetModules();
+    const session = await import("@/lib/session");
+    const cryptoMod = await import("@/lib/crypto");
+
+    const token = await session.signSession({ sub: "user-1", org: "org-1" });
+    expect(token).toBeTruthy();
+
+    const signed = cryptoMod.signMediaUrl("asset-1", Date.now() + 60_000);
+    expect(cryptoMod.verifyMediaSignature("asset-1", signed)).toBe(true);
+  });
+});
+
+describe("centralized AUTH_SECRET configuration", () => {
+  test("requireAuthSecret throws in production and never falls back to the development secret", async () => {
+    setProductionEnvironment("");
+    vi.resetModules();
+    const { requireAuthSecret } = await import("@/lib/auth-secret");
+    expect(() => requireAuthSecret()).toThrow("AUTH_SECRET is not configured.");
+  });
+
+  test("requireAuthSecret uses the configured production secret when present", async () => {
+    setProductionEnvironment(TEST_SECRET);
+    vi.resetModules();
+    const { requireAuthSecret } = await import("@/lib/auth-secret");
+    expect(requireAuthSecret()).toBe(TEST_SECRET);
+  });
 });

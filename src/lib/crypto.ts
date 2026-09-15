@@ -1,18 +1,9 @@
 import { createHash, createHmac, timingSafeEqual, randomBytes, createCipheriv, createDecipheriv, type CipherKey } from "crypto";
 import bcrypt from "bcryptjs";
-
-const SECRET = process.env.AUTH_SECRET || (process.env.NODE_ENV === "production" ? "" : "dev-secret-do-not-use-in-prod");
+import { requireAuthSecret } from "@/lib/auth-secret";
 
 const BCRYPT_ROUNDS = 10;
 const BCRYPT_PREFIX = "$2";
-
-function requireSecret(): string {
-  if (SECRET) return SECRET;
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("AUTH_SECRET is not configured.");
-  }
-  return "dev-secret-do-not-use-in-prod";
-}
 
 function encryptionKey(): Buffer {
   const raw = process.env.ENCRYPTION_KEY;
@@ -84,7 +75,7 @@ function legacyHashWithSalt(password: string, salt: string): string {
 }
 
 export function createSignature(input: string): string {
-  return createHmac("sha256", requireSecret()).update(input).digest("hex");
+  return createHmac("sha256", requireAuthSecret()).update(input).digest("hex");
 }
 
 export function safeEqual(a: string, b: string): boolean {
