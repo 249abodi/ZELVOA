@@ -133,6 +133,19 @@ export const PLATFORM_META: Record<Platform, PlatformMeta> = {
   },
 };
 
+const CAPABILITY_LABELS: Record<keyof ProviderCapabilities, string> = {
+  publish: "Publish",
+  schedule: "Schedule",
+  messaging: "Messaging",
+  analytics: "Analytics",
+};
+
+export function serializeCapabilities(capabilities: ProviderCapabilities): string[] {
+  return (Object.keys(CAPABILITY_LABELS) as (keyof ProviderCapabilities)[])
+    .filter((key) => capabilities[key])
+    .map((key) => CAPABILITY_LABELS[key]);
+}
+
 export function getPlatformMeta(platform: Platform): PlatformMeta {
   return PLATFORM_META[platform];
 }

@@ -2,7 +2,7 @@ import { getCurrentContext } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { handleApiError, unauthorized, ok, forbidden } from "@/lib/api";
 import { listProviderEntries, areDevProvidersAllowed, isProduction } from "@/lib/integrations/registry";
-import { PLATFORM_META } from "@/lib/integrations/platforms";
+import { PLATFORM_META, serializeCapabilities } from "@/lib/integrations/platforms";
 
 export async function GET() {
   try {
@@ -22,7 +22,7 @@ export async function GET() {
         reason: entry.reason,
         label: PLATFORM_META[entry.platform].label,
         icon: PLATFORM_META[entry.platform].icon,
-        capabilities: PLATFORM_META[entry.platform].capabilities,
+        capabilities: serializeCapabilities(PLATFORM_META[entry.platform].capabilities),
         publishingImplemented: PLATFORM_META[entry.platform].publishingImplemented,
       })),
     });
