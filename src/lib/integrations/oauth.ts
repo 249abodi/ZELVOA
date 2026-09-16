@@ -42,12 +42,12 @@ export function assessOAuthState(
   return { record };
 }
 
-export function buildAccountsRedirect(
-  state: string,
-  options: { base: string; error?: string; connected?: boolean }
-): string {
+export function buildAccountsRedirect(options: {
+  base: string;
+  error?: string;
+  connected?: boolean;
+}): string {
   const url = new URL("/app/accounts", options.base);
-  if (state) url.searchParams.set("state_consumed", state);
   if (options.error) {
     url.searchParams.set("connect_error", options.error);
     url.searchParams.set("connect_error_code", "oauth_error");

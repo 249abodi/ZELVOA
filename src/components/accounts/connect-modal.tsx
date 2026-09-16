@@ -229,7 +229,7 @@ export function ConnectAccountModal({
               <Button
                 className="mt-4 w-full"
                 onClick={handleConnect}
-                disabled={!canConnect}
+                disabled={!canConnect || connecting}
                 loading={connecting}
                 icon={canConnect ? "external" : "lock"}
               >

@@ -16,24 +16,29 @@ export async function GET(request: Request) {
   const base = getPlatformBaseUrl(requestUrl.origin);
   const { searchParams } = requestUrl;
 
-  function redirectToApp(state: string, error?: string) {
+  function redirectToApp(error?: string) {
     return NextResponse.redirect(
-      buildAccountsRedirect(state, { base, error, connected: !error })
+      buildAccountsRedirect({ base, error, connected: !error })
     );
   }
 
   const raw = {
-    platform: searchParams.get("platform") ?? "",
     state: searchParams.get("state") ?? "",
     code: searchParams.get("code") ?? undefined,
     error: searchParams.get("error") ?? undefined,
     error_description: searchParams.get("error_description") ?? undefined,
-    devToken: searchParams.get("dev_token") ?? undefined,
   };
-  if (!raw.state) return redirectToApp("", "missing_oauth_state");
+  console.info("[oauth-callback] received", {
+    callbackPath: "/api/v1/accounts/oauth/callback",
+    statePresent: raw.state.length > 0,
+    stateLength: raw.state.length,
+    codePresent: Boolean(raw.code),
+    providerError: raw.error ?? null,
+  });
+  if (!raw.state) return redirectToApp("missing_oauth_state");
 
   const parsed = callbackQuerySchema.safeParse(raw);
-  if (!parsed.success) return redirectToApp(raw.state, "invalid_oauth_callback");
+  if (!parsed.success) return redirectToApp("invalid_oauth_callback");
 
   const body = parsed.data;
 
@@ -46,17 +51,32 @@ export async function GET(request: Request) {
     const assessed = assessOAuthState(record, new Date());
 
     if (!record || assessed.missing) {
-      return redirectToApp(body.state, assessed.error ?? "invalid_oauth_state");
+      console.info("[oauth-callback] state lookup", {
+        statePresent: true,
+        stateLength: body.state.length,
+        recordExists: Boolean(record),
+      });
+      return redirectToApp(assessed.error ?? "invalid_oauth_state");
     }
+
+    const platform = record.platform;
+    console.info("[oauth-callback] state record", {
+      statePresent: true,
+      stateLength: body.state.length,
+      recordExists: true,
+      platform,
+      usedBefore: Boolean(record.consumedAt),
+      expired: Boolean(assessed.error === "oauth_state_expired"),
+      workspaceScoped: Boolean(record.workspaceId),
+    });
 
     if (body.error) {
       await prisma.oAuthState.delete({ where: { id: record.id } });
       console.info("[oauth-callback] provider denied the request", {
-        platform: record.platform,
+        platform,
         code: body.error,
       });
       return redirectToApp(
-        body.state,
         body.error === "access_denied" ? "oauth_access_denied" : "oauth_denied"
       );
     }
@@ -65,20 +85,20 @@ export async function GET(request: Request) {
       if (assessed.error === "oauth_state_expired") {
         await prisma.oAuthState.delete({ where: { id: record.id } });
       }
-      return redirectToApp(body.state, assessed.error);
+      return redirectToApp(assessed.error);
     }
 
     // The workspace is derived from the server-persisted state — never from the
     // client. The authenticated user must belong to that organization.
     const context = await getCurrentContext();
-    if (!context) return redirectToApp(body.state, "unauthenticated");
+    if (!context) return redirectToApp("unauthenticated");
     const member = await prisma.organizationMember.findFirst({
       where: {
         organizationId: record.organizationId,
         userId: context.user.id,
       },
     });
-    if (!member) return redirectToApp(body.state, "not_a_member");
+    if (!member) return redirectToApp("not_a_member");
 
     failedUserId = context.user.id;
     failedWorkspaceId = record.workspaceId;
@@ -96,7 +116,7 @@ export async function GET(request: Request) {
         : [];
 
     if (!Array.isArray(discoveries) || discoveries.length === 0) {
-      return redirectToApp(body.state, "no_accounts_discovered");
+      return redirectToApp("no_accounts_discovered");
     }
 
     const now = new Date();
@@ -200,7 +220,7 @@ export async function GET(request: Request) {
       });
     }
 
-    return redirectToApp(body.state, isDev ? "connected_dev" : undefined);
+    return redirectToApp(isDev ? "connected_dev" : undefined);
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Unknown provider error";
     await prisma.oAuthState
@@ -225,6 +245,6 @@ export async function GET(request: Request) {
         } as never,
       }).catch(() => undefined);
     }
-    return redirectToApp(body.state, oauthCallbackCode(error));
+    return redirectToApp(oauthCallbackCode(error));
   }
 }

@@ -63,21 +63,29 @@ describe("assessOAuthState", () => {
 
 describe("buildAccountsRedirect", () => {
   it("redirects to the accounts page with success flag", () => {
-    const url = buildAccountsRedirect("s1", { base: "http://localhost:3000", connected: true });
+    const url = buildAccountsRedirect({ base: "http://localhost:3000", connected: true });
     expect(url).toContain("/app/accounts");
     expect(url).toContain("connected=true");
   });
 
   it("redirects with the error signal on failure", () => {
-    const url = buildAccountsRedirect("s1", { base: "http://localhost:3000", error: "oops" });
+    const url = buildAccountsRedirect({ base: "http://localhost:3000", error: "oops" });
     expect(url).toContain("connect_error=oops");
     expect(url).toContain("connect_error_code=oauth_error");
   });
 
-  it("never leaks the callback query into the app", () => {
-    const url = buildAccountsRedirect("s1", { base: "http://localhost:3000", connected: true });
+  it("never leaks the OAuth state, the callback query, or the platform into the app URL", () => {
+    const url = buildAccountsRedirect({ base: "http://localhost:3000", connected: true });
+    expect(url).not.toContain("state_consumed");
+    expect(url).not.toContain("state=");
     expect(url).not.toContain("code=");
     expect(url).not.toContain("dev_token=");
+    expect(url).not.toContain("platform=");
+  });
+
+  it("omits the success flag when an error is present", () => {
+    const url = buildAccountsRedirect({ base: "http://localhost:3000", error: "oops" });
+    expect(url).not.toContain("connected=true");
   });
 });
 

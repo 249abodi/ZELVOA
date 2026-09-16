@@ -208,7 +208,7 @@ export const connectAccountSchema = z.object({
 
 export const callbackQuerySchema = z
   .object({
-    platform: platformEnum,
+    platform: platformEnum.optional(),
     state: z.string().min(1),
     code: z.string().optional(),
     error: z.string().optional(),
@@ -230,7 +230,7 @@ export const refreshAccountSchema = z.object({
 });
 
 export const reconnectAccountSchema = z.object({
-  accountId: z.string().min(1),
+  accountId: z.string().min(1).optional(),
   redirectUri: z.string().url().optional(),
 });
 
