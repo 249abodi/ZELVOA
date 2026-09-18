@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { SocialLoginButtons } from "@/components/auth/social-login-buttons";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,22 @@ import { Label } from "@/components/ui/label";
 import { getErrorMessage } from "@/lib/utils";
 
 export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <AuthShell title="Create your workspace" subtitle="Loading..." footer={null}>
+          <div className="h-10" />
+        </AuthShell>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
+  );
+}
+
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -19,6 +35,13 @@ export default function RegisterPage() {
   const [organizationName, setOrganizationName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // /register?next=/invite?token=XXXX — carries the pending invitation into the request.
+  const next = searchParams.get("next");
+  const nextUrl = next ? new URL(next, "http://localhost") : null;
+  const inviteToken =
+    nextUrl?.pathname === "/invite" ? (nextUrl.searchParams.get("token") ?? undefined) : undefined;
+  const isInvite = Boolean(inviteToken);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,14 +55,15 @@ export default function RegisterPage() {
           name,
           email,
           password,
-          organizationName,
+          organizationName: isInvite ? undefined : organizationName,
+          ...(inviteToken ? { inviteToken } : {}),
         }),
       });
       const json = await res.json();
       if (!res.ok) {
         throw new Error(json.error?.message || "Registration failed.");
       }
-      router.push("/app/dashboard");
+      router.push(isInvite ? next! : "/app/dashboard");
       router.refresh();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -49,8 +73,12 @@ export default function RegisterPage() {
 
   return (
     <AuthShell
-      title="Create your workspace"
-      subtitle="Start managing all your social channels in one place — free."
+      title={isInvite ? "Join your team" : "Create your workspace"}
+      subtitle={
+        isInvite
+          ? "Create a free account to accept the invitation."
+          : "Start managing all your social channels in one place — free."
+      }
       footer={
         <>
           Already have an account?{" "}
@@ -105,24 +133,36 @@ export default function RegisterPage() {
             icon="lock"
           />
         </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="org">Workspace name</Label>
-          <Input
-            id="org"
-            required
-            placeholder="Acme Studio"
-            value={organizationName}
-            onChange={(e) => setOrganizationName(e.target.value)}
-            icon="workspace"
-          />
-        </div>
+        {!isInvite && (
+          <div className="grid gap-1.5">
+            <Label htmlFor="org">Workspace name</Label>
+            <Input
+              id="org"
+              required
+              placeholder="Acme Studio"
+              value={organizationName}
+              onChange={(e) => setOrganizationName(e.target.value)}
+              icon="workspace"
+            />
+          </div>
+        )}
         <Button type="submit" loading={loading} className="mt-2">
-          Create free account
+          {isInvite ? "Create account & join" : "Create free account"}
         </Button>
-        <p className="text-center text-xs text-muted-foreground">
-          Free forever plan · 1 social account · 10 posts/month
-        </p>
+        {!isInvite && (
+          <p className="text-center text-xs text-muted-foreground">
+            Free forever plan · 1 social account · 10 posts/month
+          </p>
+        )}
       </form>
+
+      <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="h-px flex-1 bg-border" />
+        or continue with
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      <SocialLoginButtons next={isInvite ? next ?? undefined : undefined} />
     </AuthShell>
   );
 }
