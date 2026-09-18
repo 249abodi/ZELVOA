@@ -10,6 +10,7 @@ import { redactError } from "@/lib/integrations/redact";
 import { writeAudit } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications/service";
 import { assessOAuthState, buildAccountsRedirect, oauthCallbackCode } from "@/lib/integrations/oauth";
+import { buildPendingPayload, PENDING_SELECTION_TTL_MS } from "@/lib/pending-selection";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -123,6 +124,51 @@ export async function GET(request: Request) {
     const exchangedScopes = discoveries[0].scopes ?? exchanged.scopes ?? [];
     const isDev = provider.isDevProvider || isDevMarkerScope(exchangedScopes);
     const scopesToStore = isDev ? markDev(exchangedScopes) : exchangedScopes;
+
+    if (record.platform === "FACEBOOK") {
+      const pages = discoveries
+        .filter((discovered) => discovered.platformAccountId && discovered.token?.accessToken)
+        .map((discovered) => ({
+          pageId: discovered.platformAccountId,
+          name: discovered.name,
+          username: discovered.username,
+          avatarUrl: discovered.avatarUrl,
+          accessToken: discovered.token!.accessToken,
+        }));
+
+      if (pages.length === 0) {
+        return redirectToApp("pending_no_pages");
+      }
+
+      const pendingExpiresAt = new Date(now.getTime() + PENDING_SELECTION_TTL_MS);
+      let pendingId = "";
+      await prisma.$transaction(async (tx) => {
+        const pending = await tx.pendingPageSelection.create({
+          data: {
+            oauthStateId: record.id,
+            workspaceId: record.workspaceId,
+            organizationId: record.organizationId,
+            userId: context.user.id,
+            platform: record.platform,
+            encryptedPayload: buildPendingPayload({
+              scopes: scopesToStore,
+              isDev,
+              pages,
+            }),
+            expiresAt: pendingExpiresAt,
+          },
+        });
+        pendingId = pending.id;
+        await tx.oAuthState.update({
+          where: { id: record.id },
+          data: { consumedAt: now },
+        });
+      });
+
+      return NextResponse.redirect(
+        new URL(`/app/accounts/select?pending=${encodeURIComponent(pendingId)}`, base).toString()
+      );
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       const created: Array<{ id: string; platform: string }> = [];

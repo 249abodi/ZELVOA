@@ -9,6 +9,7 @@ import { ConnectAccountModal } from "@/components/accounts/connect-modal";
 import { AccountDetailModal, type AccountSummary } from "@/components/accounts/account-detail-modal";
 import { useToast } from "@/components/ui/toast";
 import { PLATFORM_META } from "@/lib/integrations/platforms";
+import { getOAuthErrorMessage } from "@/lib/integrations/oauth-messages";
 import type { Platform } from "@/lib/integrations/types";
 
 interface Notify {
@@ -85,7 +86,8 @@ export function AccountsPageClient({
       }
       void Promise.resolve().then(refetch);
     } else if (notify.kind === "error") {
-      toastError("Connection failed", decodeURIComponent(notify.message ?? "Unknown error"));
+      const { title, message } = getOAuthErrorMessage(notify.message);
+      toastError(title, message);
     }
   }, [notify, refetch, toastSuccess, toastError, toastInfo]);
 

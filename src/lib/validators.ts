@@ -279,3 +279,31 @@ export const notificationsMarkReadSchema = z
   .refine((data) => data.ids || data.all, {
     message: "Provide at least one notification id or use all.",
   });
+
+export const updateNotificationPreferencesSchema = z.object({
+  emailNotifications: z.boolean(),
+  inAppNotifications: z.boolean(),
+  marketingEmails: z.boolean(),
+});
+
+export const confirmPageSelectionSchema = z
+  .object({
+    pendingId: z.string().min(1),
+    selectedPageIds: z
+      .array(z.string().min(1))
+      .min(1, "Select at least one Page.")
+      .max(100),
+  })
+  .superRefine((data, ctx) => {
+    if (new Set(data.selectedPageIds).size !== data.selectedPageIds.length) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["selectedPageIds"],
+        message: "Duplicate Page selections are not allowed.",
+      });
+    }
+  });
+
+export const cancelPendingSchema = z.object({
+  pendingId: z.string().min(1),
+});

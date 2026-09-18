@@ -31,7 +31,7 @@ const OAUTH_ENDPOINTS: Record<Platform, OAuthEndpointConfig> = {
     authorizationEndpoint: "https://www.facebook.com/v25.0/dialog/oauth",
     tokenEndpoint: "https://graph.facebook.com/v25.0/oauth/access_token",
     revocationEndpoint: "https://graph.facebook.com/v25.0/{userId}/permissions",
-    scopes: ["pages_manage_posts", "pages_read_engagement", "pages_messaging"],
+    scopes: ["pages_manage_posts", "pages_show_list"],
   },
   TIKTOK: {
     authorizationEndpoint: "https://www.tiktok.com/v2/auth/authorize/",

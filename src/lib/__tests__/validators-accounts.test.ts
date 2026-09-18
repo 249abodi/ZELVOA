@@ -3,6 +3,8 @@ import {
   connectAccountSchema,
   callbackQuerySchema,
   updateAccountSchema,
+  confirmPageSelectionSchema,
+  cancelPendingSchema,
 } from "@/lib/validators";
 
 describe("connectAccountSchema", () => {
@@ -78,5 +80,74 @@ describe("updateAccountSchema", () => {
   it("allows clearing the username", () => {
     const result = updateAccountSchema.safeParse({ username: null });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("confirmPageSelectionSchema", () => {
+  it("accepts a valid selection", () => {
+    const result = confirmPageSelectionSchema.safeParse({
+      pendingId: "pp_1",
+      selectedPageIds: ["page_1", "page_2"],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an empty selection", () => {
+    expect(
+      confirmPageSelectionSchema.safeParse({ pendingId: "pp_1", selectedPageIds: [] }).success
+    ).toBe(false);
+  });
+
+  it("rejects a missing pendingId", () => {
+    expect(confirmPageSelectionSchema.safeParse({ selectedPageIds: ["page_1"] }).success).toBe(
+      false
+    );
+  });
+
+  it("rejects duplicate selections", () => {
+    expect(
+      confirmPageSelectionSchema.safeParse({
+        pendingId: "pp_1",
+        selectedPageIds: ["page_1", "page_1"],
+      }).success
+    ).toBe(false);
+  });
+
+  it("rejects more than 100 selections", () => {
+    expect(
+      confirmPageSelectionSchema.safeParse({
+        pendingId: "pp_1",
+        selectedPageIds: Array.from({ length: 101 }, (_, i) => `page_${i}`),
+      }).success
+    ).toBe(false);
+  });
+
+  it("accepts exactly 100 selections", () => {
+    expect(
+      confirmPageSelectionSchema.safeParse({
+        pendingId: "pp_1",
+        selectedPageIds: Array.from({ length: 100 }, (_, i) => `page_${i}`),
+      }).success
+    ).toBe(true);
+  });
+
+  it("rejects non-string selectedPageIds", () => {
+    expect(
+      confirmPageSelectionSchema.safeParse({ pendingId: "pp_1", selectedPageIds: [1] }).success
+    ).toBe(false);
+  });
+});
+
+describe("cancelPendingSchema", () => {
+  it("accepts a pendingId", () => {
+    expect(cancelPendingSchema.safeParse({ pendingId: "pp_1" }).success).toBe(true);
+  });
+
+  it("rejects a missing pendingId", () => {
+    expect(cancelPendingSchema.safeParse({}).success).toBe(false);
+  });
+
+  it("rejects a blank pendingId", () => {
+    expect(cancelPendingSchema.safeParse({ pendingId: "" }).success).toBe(false);
   });
 });

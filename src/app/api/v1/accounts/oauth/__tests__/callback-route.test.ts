@@ -9,6 +9,7 @@ const { mockPrisma, mockGetCurrentContext, mockWriteAudit, mockCreateNotificatio
     oAuthState: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn(), delete: vi.fn() },
     socialAccount: { upsert: vi.fn() },
     socialAccountToken: { upsert: vi.fn() },
+    pendingPageSelection: { create: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
     organizationMember: { findFirst: vi.fn() },
     $transaction: vi.fn(),
   },
@@ -45,19 +46,22 @@ const CONTEXT = {
   role: "OWNER",
 };
 
-const RECORD = {
-  id: "st_1",
-  organizationId: "org-9",
-  workspaceId: "ws-9",
-  platform: "FACEBOOK",
-  state: "SOME-STATE-VALUE",
-  redirectUri: "https://zelvoa.vercel.app/api/v1/accounts/oauth/callback",
-  connectsTo: null,
-  consumedAt: null,
-  expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-  ipAddress: null,
-  createdAt: new Date(),
-};
+function makeRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "st_1",
+    organizationId: "org-9",
+    workspaceId: "ws-9",
+    platform: "FACEBOOK",
+    state: "SOME-STATE-VALUE",
+    redirectUri: "https://zelvoa.vercel.app/api/v1/accounts/oauth/callback",
+    connectsTo: null,
+    consumedAt: null,
+    expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+    ipAddress: null,
+    createdAt: new Date(),
+    ...overrides,
+  };
+}
 
 function makeCallback(query: string): Request {
   return new Request(`https://zelvoa.vercel.app/api/v1/accounts/oauth/callback?${query}`);
@@ -70,9 +74,24 @@ function discovered(overrides: Record<string, unknown> = {}) {
     name: "ZELVOA",
     username: "zelvoa",
     avatarUrl: null,
-    scopes: ["pages_manage_posts"],
+    scopes: ["pages_manage_posts", "pages_show_list"],
     status: "CONNECTED",
     token: { accessToken: "long-page-token-value", refreshToken: undefined, expiresInSeconds: null },
+    isDevProvider: false,
+    ...overrides,
+  };
+}
+
+function igDiscovered(overrides: Record<string, unknown> = {}) {
+  return {
+    platform: "INSTAGRAM",
+    platformAccountId: "ig_1",
+    name: "ZELVOA.IG",
+    username: "zelvoa.ig",
+    avatarUrl: null,
+    scopes: ["instagram_basic", "instagram_content_publish", "pages_show_list"],
+    status: "CONNECTED",
+    token: { accessToken: "ig-long-token", refreshToken: undefined, expiresInSeconds: null },
     isDevProvider: false,
     ...overrides,
   };
@@ -86,16 +105,18 @@ beforeEach(() => {
   mockGetCurrentContext.mockResolvedValue(CONTEXT);
   mockWriteAudit.mockResolvedValue(true);
   mockCreateNotification.mockResolvedValue(true);
-  mockPrisma.oAuthState.findUnique.mockResolvedValue(RECORD);
+  mockPrisma.oAuthState.findUnique.mockResolvedValue(makeRecord());
   mockPrisma.oAuthState.update.mockResolvedValue({ id: "st_1", consumedAt: new Date() });
   mockPrisma.oAuthState.updateMany.mockResolvedValue({ count: 1 });
   mockPrisma.oAuthState.delete.mockResolvedValue({ id: "st_1" });
   mockPrisma.organizationMember.findFirst.mockResolvedValue({ id: "m_1" });
+  mockPrisma.pendingPageSelection.create.mockImplementation(({ data }) => ({
+    id: "pp_1",
+    ...data,
+  }));
   mockPrisma.socialAccount.upsert.mockImplementation(({ create }) => ({
     id: "acc_1",
     ...create,
-    platform: "FACEBOOK",
-    platformAccountId: create.platformAccountId,
   }));
   mockPrisma.socialAccountToken.upsert.mockResolvedValue({ id: "tok_1" });
   mockPrisma.$transaction.mockImplementation(async (cb: (tx: unknown) => unknown) => cb(mockPrisma));
@@ -126,8 +147,8 @@ describe("callback — state presence (must only fail as missing when absent)", 
     mockProvider.getAccounts.mockResolvedValue([discovered()]);
 
     const res = await callbackGet(makeCallback("code=abc&state=zzz"));
-    const location = new URL(res.headers.get("Location") ?? "").toString();
-    expect(location).toContain("connected=true");
+    const location = res.headers.get("Location") ?? "";
+    expect(location).toContain("/app/accounts/select?pending=");
     expect(location).not.toContain("missing_oauth_state");
     expect(location).not.toContain("invalid_oauth_callback");
   });
@@ -142,8 +163,8 @@ describe("callback — state validation outcomes", () => {
     );
   });
 
-  test("consumed state → oauth_state_already_used", async () => {
-    mockPrisma.oAuthState.findUnique.mockResolvedValue({ ...RECORD, consumedAt: new Date() });
+  test("consumed state → oauth_state_already_used (replay rejected)", async () => {
+    mockPrisma.oAuthState.findUnique.mockResolvedValue(makeRecord({ consumedAt: new Date() }));
     const res = await callbackGet(makeCallback("code=abc&state=zzz"));
     expect(new URL(res.headers.get("Location") ?? "").searchParams.get("connect_error")).toBe(
       "oauth_state_already_used"
@@ -151,10 +172,9 @@ describe("callback — state validation outcomes", () => {
   });
 
   test("expired state → oauth_state_expired and the row is removed", async () => {
-    mockPrisma.oAuthState.findUnique.mockResolvedValue({
-      ...RECORD,
-      expiresAt: new Date(Date.now() - 1000),
-    });
+    mockPrisma.oAuthState.findUnique.mockResolvedValue(
+      makeRecord({ expiresAt: new Date(Date.now() - 1000) })
+    );
     const res = await callbackGet(makeCallback("code=abc&state=zzz"));
     expect(new URL(res.headers.get("Location") ?? "").searchParams.get("connect_error")).toBe(
       "oauth_state_expired"
@@ -162,12 +182,12 @@ describe("callback — state validation outcomes", () => {
     expect(mockPrisma.oAuthState.delete).toHaveBeenCalledWith({ where: { id: "st_1" } });
   });
 
-  test("valid state proceeds through token exchange and persists the account", async () => {
+  test("valid state proceeds through token exchange and redirects to facebook page selection", async () => {
     mockProvider.exchangeCode.mockResolvedValue({
       accessToken: "short-token",
       refreshToken: undefined,
       expiresInSeconds: 5184000,
-      scopes: ["pages_manage_posts"],
+      scopes: ["pages_manage_posts", "pages_show_list"],
       platformAccountId: "profile_1",
     });
     mockProvider.getAccounts.mockResolvedValue([discovered()]);
@@ -175,13 +195,116 @@ describe("callback — state validation outcomes", () => {
     const res = await callbackGet(makeCallback("code=abc&state=zzz"));
     expect(res.status).toBe(307);
     const location = res.headers.get("Location") ?? "";
-    expect(location).toContain("/app/accounts");
-    expect(location).toContain("connected=true");
+    expect(location).toContain("/app/accounts/select?pending=");
+    expect(location).not.toContain("connected=true");
     expect(mockProvider.exchangeCode).toHaveBeenCalledWith(
       "abc",
       "https://zelvoa.vercel.app/api/v1/accounts/oauth/callback"
     );
-    expect(mockPrisma.socialAccountToken.upsert).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("callback — facebook pending selection flow", () => {
+  test("creates a PendingPageSelection for the discovered pages", async () => {
+    mockProvider.exchangeCode.mockResolvedValue({ accessToken: "tok", scopes: ["pages_manage_posts", "pages_show_list"] });
+    mockProvider.getAccounts.mockResolvedValue([discovered(), discovered({ platformAccountId: "page_2", name: "Second Page" })]);
+
+    await callbackGet(makeCallback("code=abc&state=zzz"));
+
+    expect(mockPrisma.pendingPageSelection.create).toHaveBeenCalledTimes(1);
+    const createArg = mockPrisma.pendingPageSelection.create.mock.calls[0][0];
+    expect(createArg.data).toMatchObject({
+      oauthStateId: "st_1",
+      workspaceId: "ws-9",
+      organizationId: "org-9",
+      userId: "user-1",
+      platform: "FACEBOOK",
+    });
+  });
+
+  test("pending expiry is 10 minutes from callback time", async () => {
+    mockProvider.exchangeCode.mockResolvedValue({ accessToken: "tok", scopes: ["pages_manage_posts"] });
+    mockProvider.getAccounts.mockResolvedValue([discovered()]);
+    const before = Date.now();
+
+    await callbackGet(makeCallback("code=abc&state=zzz"));
+
+    const createArg = mockPrisma.pendingPageSelection.create.mock.calls[0][0];
+    const expiresAt = createArg.data.expiresAt as Date;
+    expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + 10 * 60 * 1000 - 2000);
+    expect(expiresAt.getTime()).toBeLessThanOrEqual(before + 10 * 60 * 1000 + 2000);
+  });
+
+  test("consumes the OAuthState in the same transaction as pending creation", async () => {
+    mockProvider.exchangeCode.mockResolvedValue({ accessToken: "tok", scopes: [] });
+    mockProvider.getAccounts.mockResolvedValue([discovered()]);
+
+    await callbackGet(makeCallback("code=abc&state=zzz"));
+
+    expect(mockPrisma.oAuthState.update).toHaveBeenCalledWith({
+      where: { id: "st_1" },
+      data: { consumedAt: expect.any(Date) },
+    });
+    expect(mockPrisma.oAuthState.update).toHaveBeenCalledTimes(1);
+  });
+
+  test("does NOT immediately create SocialAccount or SocialAccountToken", async () => {
+    mockProvider.exchangeCode.mockResolvedValue({ accessToken: "tok", scopes: [] });
+    mockProvider.getAccounts.mockResolvedValue([discovered()]);
+
+    await callbackGet(makeCallback("code=abc&state=zzz"));
+
+    expect(mockPrisma.socialAccount.upsert).not.toHaveBeenCalled();
+    expect(mockPrisma.socialAccountToken.upsert).not.toHaveBeenCalled();
+    expect(mockWriteAudit).not.toHaveBeenCalled();
+  });
+
+  test("encrypts stored page tokens and never exposes them on the redirect", async () => {
+    mockProvider.exchangeCode.mockResolvedValue({ accessToken: "short-token", scopes: [] });
+    mockProvider.getAccounts.mockResolvedValue([
+      discovered({ token: { accessToken: "super-secret-page-token", refreshToken: undefined, expiresInSeconds: null } }),
+    ]);
+
+    const res = await callbackGet(makeCallback("code=abc&state=zzz"));
+    const location = res.headers.get("Location") ?? "";
+    expect(location).toContain("/app/accounts/select?pending=");
+    expect(location).not.toContain("super-secret-page-token");
+    expect(location).not.toContain("short-token");
+    expect(location).not.toContain("state=zzz");
+    expect(location).not.toContain("code=abc");
+
+    const createArg = mockPrisma.pendingPageSelection.create.mock.calls[0][0];
+    expect(createArg.data.encryptedPayload).not.toContain("super-secret-page-token");
+  });
+
+  test("transaction rolls back (no pending, no state consumption) when pending creation fails", async () => {
+    mockProvider.exchangeCode.mockResolvedValue({ accessToken: "tok", scopes: [] });
+    mockProvider.getAccounts.mockResolvedValue([discovered()]);
+    mockPrisma.pendingPageSelection.create.mockRejectedValue(new Error("DB failure"));
+
+    const res = await callbackGet(makeCallback("code=abc&state=zzz"));
+    expect(new URL(res.headers.get("Location") ?? "").searchParams.get("connect_error")).toBe(
+      "provider_error"
+    );
+    expect(mockPrisma.oAuthState.update).not.toHaveBeenCalled();
+    expect(mockPrisma.oAuthState.updateMany).toHaveBeenCalledWith({
+      where: { state: "zzz", consumedAt: null },
+      data: { consumedAt: expect.any(Date) },
+    });
+    expect(mockPrisma.socialAccount.upsert).not.toHaveBeenCalled();
+  });
+
+  test("fails safely when discovery returns pages without usable tokens", async () => {
+    mockProvider.exchangeCode.mockResolvedValue({ accessToken: "tok", scopes: [] });
+    mockProvider.getAccounts.mockResolvedValue([
+      discovered({ platformAccountId: "", token: { accessToken: "t" } }),
+    ]);
+
+    const res = await callbackGet(makeCallback("code=abc&state=zzz"));
+    expect(new URL(res.headers.get("Location") ?? "").searchParams.get("connect_error")).toBe(
+      "pending_no_pages"
+    );
+    expect(mockPrisma.pendingPageSelection.create).not.toHaveBeenCalled();
   });
 });
 
@@ -233,21 +356,10 @@ describe("callback — workspace scoping, consumption, and leakage", () => {
     expect(mockPrisma.organizationMember.findFirst).toHaveBeenCalledWith({
       where: { organizationId: "org-9", userId: "user-1" },
     });
-    const upsert = mockPrisma.socialAccount.upsert.mock.calls[0][0];
-    expect(upsert.create.workspaceId).toBe("ws-9");
-    expect(upsert.create.platform).toBe("FACEBOOK");
-  });
-
-  test("consumes the state exactly once on success", async () => {
-    mockProvider.exchangeCode.mockResolvedValue({ accessToken: "tok", scopes: [] });
-    mockProvider.getAccounts.mockResolvedValue([discovered()]);
-
-    await callbackGet(makeCallback("code=abc&state=zzz"));
-
-    expect(mockPrisma.oAuthState.update).toHaveBeenCalledWith({
-      where: { id: "st_1" },
-      data: { consumedAt: expect.any(Date) },
-    });
+    const createArg = mockPrisma.pendingPageSelection.create.mock.calls[0][0];
+    expect(createArg.data.workspaceId).toBe("ws-9");
+    expect(createArg.data.platform).toBe("FACEBOOK");
+    expect(createArg.data.organizationId).toBe("org-9");
   });
 
   test("rejects a user who is not a member of the record's organization", async () => {
@@ -258,21 +370,54 @@ describe("callback — workspace scoping, consumption, and leakage", () => {
     );
     expect(mockProvider.exchangeCode).not.toHaveBeenCalled();
   });
+});
 
-  test("never exposes state, code, or tokens in the redirect or stored payload", async () => {
-    mockProvider.exchangeCode.mockResolvedValue({ accessToken: "short-token", scopes: [] });
-    mockProvider.getAccounts.mockResolvedValue([discovered({ token: { accessToken: "super-secret-page-token" } })]);
+describe("callback — instagram keeps immediate connection", () => {
+  beforeEach(() => {
+    mockPrisma.oAuthState.findUnique.mockResolvedValue(makeRecord({ platform: "INSTAGRAM" }));
+  });
+
+  test("instagram callback creates SocialAccount immediately", async () => {
+    mockProvider.exchangeCode.mockResolvedValue({
+      accessToken: "ig-short",
+      scopes: ["instagram_basic", "instagram_content_publish", "pages_show_list"],
+      platformAccountId: "ig_1",
+      name: "ZELVOA.IG",
+    });
+    mockProvider.getAccounts.mockResolvedValue([igDiscovered()]);
 
     const res = await callbackGet(makeCallback("code=abc&state=zzz"));
-    const location = res.headers.get("Location") ?? "";
-    expect(location).not.toContain("state_consumed");
-    expect(location).not.toContain("state=zzz");
-    expect(location).not.toContain("code=abc");
-    expect(location).not.toContain("super-secret-page-token");
-    expect(location).not.toContain("short-token");
+    expect(res.status).toBe(307);
+    expect(res.headers.get("Location") ?? "").toContain("connected=true");
+    expect(res.headers.get("Location") ?? "").not.toContain("/app/accounts/select");
 
-    const tokenArgs = mockPrisma.socialAccountToken.upsert.mock.calls[0][0];
-    expect(tokenArgs.create.encryptedAccessToken).not.toContain("super-secret-page-token");
-    expect(tokenArgs.create.encryptedAccessToken).not.toBe("super-secret-page-token");
+    expect(mockPrisma.pendingPageSelection.create).not.toHaveBeenCalled();
+    expect(mockPrisma.socialAccount.upsert).toHaveBeenCalledTimes(1);
+    const upsertArg = mockPrisma.socialAccount.upsert.mock.calls[0][0];
+    expect(upsertArg.create.platform).toBe("INSTAGRAM");
+    expect(upsertArg.create.workspaceId).toBe("ws-9");
+    expect(mockPrisma.socialAccountToken.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  test("instagram callback consumes the state exactly once", async () => {
+    mockProvider.exchangeCode.mockResolvedValue({ accessToken: "ig", scopes: [] });
+    mockProvider.getAccounts.mockResolvedValue([igDiscovered()]);
+
+    await callbackGet(makeCallback("code=abc&state=zzz"));
+
+    expect(mockPrisma.oAuthState.update).toHaveBeenCalledWith({
+      where: { id: "st_1" },
+      data: { consumedAt: expect.any(Date) },
+    });
+    expect(mockPrisma.oAuthState.update).toHaveBeenCalledTimes(1);
+  });
+
+  test("instagram tokens never reach the pending payload", async () => {
+    mockProvider.exchangeCode.mockResolvedValue({ accessToken: "ig-token", scopes: [] });
+    mockProvider.getAccounts.mockResolvedValue([igDiscovered()]);
+
+    const res = await callbackGet(makeCallback("code=abc&state=zzz"));
+    expect(res.headers.get("Location") ?? "").not.toContain("ig-token");
+    expect(mockPrisma.pendingPageSelection.create).not.toHaveBeenCalled();
   });
 });

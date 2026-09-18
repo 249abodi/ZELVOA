@@ -60,7 +60,11 @@ describe("connect route — OAuth state lifecycle", () => {
     expect(url.searchParams.get("redirect_uri")).toBe(
       "https://zelvoa.vercel.app/api/v1/accounts/oauth/callback"
     );
-    expect(url.searchParams.get("scope")).toContain("pages_manage_posts");
+    expect(url.searchParams.get("scope")).toBe(
+      "pages_manage_posts pages_show_list"
+    );
+    expect(url.searchParams.get("scope")).not.toContain("pages_read_engagement");
+    expect(url.searchParams.get("scope")).not.toContain("pages_messaging");
 
     expect(mockPrisma.oAuthState.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
