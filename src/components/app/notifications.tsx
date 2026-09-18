@@ -76,6 +76,8 @@ export function Notifications() {
           prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() }))
         );
       }
+    } catch {
+      // Ignore — failed requests leave unread state untouched.
     } finally {
       setBusy(false);
     }

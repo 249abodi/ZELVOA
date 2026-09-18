@@ -12,6 +12,9 @@ export async function GET(
     const context = await getCurrentContext();
     if (!context) return unauthorized();
     if (!context.workspace) return fail("No workspace selected.", 400);
+    if (!can(context.role, "post.view")) {
+      return forbidden("You do not have permission to view posts.");
+    }
 
     const { id } = await params;
     const post = await prisma.post.findFirst({

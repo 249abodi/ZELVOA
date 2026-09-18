@@ -43,3 +43,9 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# local dev storage (local uploads; production uses S3 via STORAGE_BUCKET)
+.zelvoa-storage/
+
+# local brand reference (not part of the repo)
+/brand-sheet/

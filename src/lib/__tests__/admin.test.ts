@@ -29,10 +29,10 @@ describe("isAdminEmail", () => {
 });
 
 describe("canAccessAdmin", () => {
-  it("grants access to OWNER role", () => {
+  it("denies OWNER without an allowlisted email", () => {
     setEnv("ADMIN_EMAILS", "");
     setEnv("DISABLE_ADMIN", "");
-    expect(canAccessAdmin({ role: "OWNER", email: "owner@example.com" })).toBe(true);
+    expect(canAccessAdmin({ role: "OWNER", email: "owner@example.com" })).toBe(false);
   });
 
   it("denies non-owner without an allowlisted email", () => {

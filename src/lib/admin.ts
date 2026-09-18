@@ -18,6 +18,5 @@ export function canAccessAdmin(input: {
 }): boolean {
   if (adminDisabled()) return false;
   if (input.email && isAdminEmail(input.email)) return true;
-  if (input.role === "OWNER") return true;
   return false;
 }

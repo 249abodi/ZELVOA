@@ -15,6 +15,9 @@ export async function GET(
     const context = await getCurrentContext();
     if (!context) return unauthorized();
     if (!context.workspace) return fail("No workspace selected.", 400);
+    if (!can(context.role, "media.view")) {
+      return forbidden("You do not have permission to view media.");
+    }
 
     const { id } = await params;
     const asset = await prisma.mediaAsset.findFirst({

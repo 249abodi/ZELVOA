@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getCurrentContext } from "@/lib/auth";
 import { can } from "@/lib/rbac";
-import { handleApiError, fail, unauthorized, ok, created, parseJson } from "@/lib/api";
+import { handleApiError, fail, unauthorized, ok, created, parseJson, notFound } from "@/lib/api";
 import { z } from "zod";
 
 const addMediaSchema = z.object({
@@ -107,12 +107,17 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const post = await prisma.post.findFirst({
+      where: { id, workspaceId: context.workspace.id, deletedAt: null },
+    });
+    if (!post) return notFound("Post not found.");
+
     const { searchParams } = new URL(request.url);
     const mediaAssetId = searchParams.get("mediaAssetId");
     if (!mediaAssetId) return fail("mediaAssetId is required.", 400);
 
     await prisma.postMedia.deleteMany({
-      where: { postId: id, mediaAssetId },
+      where: { postId: id, mediaAssetId, post: { workspaceId: context.workspace.id } },
     });
 
     return ok({ deleted: true });

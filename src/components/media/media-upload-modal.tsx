@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/icons";
@@ -32,6 +32,7 @@ export function MediaUploadModal({
   onUploaded: () => void;
 }) {
   const { toastSuccess, toastError } = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
@@ -39,6 +40,7 @@ export function MediaUploadModal({
   const handleFiles = (fileList: FileList | null) => {
     if (!fileList) return;
     setFiles(Array.from(fileList));
+    if (inputRef.current) inputRef.current.value = "";
   };
 
   const upload = async () => {
@@ -80,7 +82,7 @@ export function MediaUploadModal({
       description="Select images, videos, or documents from your device."
     >
       <div
-        className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors ${
+        className={`relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors ${
           dragActive
             ? "border-primary bg-primary-50 dark:bg-primary-900/20"
             : "border-border hover:border-border-strong"
@@ -104,6 +106,7 @@ export function MediaUploadModal({
           or click to browse your device
         </p>
         <input
+          ref={inputRef}
           type="file"
           multiple
           accept="image/*,video/*,.pdf,.doc,.docx,.txt"
