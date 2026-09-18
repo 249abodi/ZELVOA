@@ -3,11 +3,14 @@ import { getCurrentContext } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/rbac";
 import { PageHeader } from "@/components/app/page-header";
-import { Switch } from "@/components/ui/switch";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { WorkspaceForm } from "@/components/settings/workspace-form";
 import { SettingsSection } from "@/components/settings/section";
+import { NotificationPreferences } from "@/components/settings/notification-preferences";
+import { SecuritySettings } from "@/components/settings/security-settings";
 import { Icon, type IconName } from "@/components/icons";
+
+export const metadata = { title: "Settings" };
 
 export const dynamic = "force-dynamic";
 
@@ -100,23 +103,11 @@ export default async function SettingsPage({
               title="Notifications"
               description="Choose which notifications you receive."
             >
-              <div className="grid max-w-md gap-4">
-                <NotificationRow
-                  title="Email notifications"
-                  description="Product updates and digests by email."
-                  defaultValue={userSettings?.emailNotifications ?? true}
-                />
-                <NotificationRow
-                  title="In-app notifications"
-                  description="Approvals, publish events, and reminders."
-                  defaultValue={userSettings?.inAppNotifications ?? true}
-                />
-                <NotificationRow
-                  title="Marketing emails"
-                  description="Tips and offers from ZELVOA."
-                  defaultValue={userSettings?.marketingEmails ?? false}
-                />
-              </div>
+              <NotificationPreferences
+                initialEmailNotifications={userSettings?.emailNotifications ?? true}
+                initialInAppNotifications={userSettings?.inAppNotifications ?? true}
+                initialMarketingEmails={userSettings?.marketingEmails ?? false}
+              />
             </SettingsSection>
           )}
 
@@ -145,48 +136,14 @@ export default async function SettingsPage({
                   <Icon name="shield" size={18} className="text-muted-foreground" />
                 </div>
                 {workspaceSettings ? (
-                  <div className="flex items-center justify-between rounded-xl border border-border bg-background-subtle px-4 py-3">
-                    <div>
-                      <p className="text-sm font-medium">Approval required</p>
-                      <p className="text-xs text-muted-foreground">
-                        Require manager approval before publishing.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={workspaceSettings.approvalRequired}
-                      disabled
-                      onCheckedChange={() => {}}
-                    />
-                    <span className="text-xs text-muted-foreground">Coming soon</span>
-                  </div>
+                  <SecuritySettings
+                    approvalRequired={workspaceSettings.approvalRequired}
+                  />
                 ) : null}
               </div>
             </SettingsSection>
           )}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function NotificationRow({
-  title,
-  description,
-  defaultValue,
-}: {
-  title: string;
-  description: string;
-  defaultValue: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-border bg-background-subtle px-4 py-3">
-      <div>
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </div>
-      <div className="flex items-center gap-2">
-        <Switch checked={defaultValue} disabled onCheckedChange={() => {}} />
-        <span className="text-xs text-muted-foreground">Coming soon</span>
       </div>
     </div>
   );
