@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { ZelvoaLogo } from "@/components/brand/logo";
+import { ZelvoaLogo, ZelvoaMark } from "@/components/brand/logo";
 import { SiteNav } from "@/components/site/nav";
 import {
   Card,
@@ -331,9 +331,7 @@ function DashboardPreview() {
         <span className="h-3 w-3 rounded-full bg-destructive/70" />
         <span className="h-3 w-3 rounded-full bg-warning/70" />
         <span className="h-3 w-3 rounded-full bg-success/70" />
-        <span className="ml-3 flex h-6 w-6 items-center justify-center rounded-md bg-primary text-white">
-          <span className="text-xs font-bold">Z</span>
-        </span>
+        <span className="ml-3"><ZelvoaMark size={24} /></span>
         <div className="ml-2 h-4 w-44 rounded bg-muted" />
       </div>
       <div className="flex">

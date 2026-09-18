@@ -31,7 +31,7 @@ const TYPE_ICONS: Record<string, "image" | "video" | "documents"> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  IMAGE: "bg-accent-100 text-accent-600 dark:bg-accent-900/30 dark:text-accent-400",
+  IMAGE: "bg-accent-100 text-accent-600 dark:bg-accent-600/30 dark:text-accent-400",
   VIDEO: "bg-secondary-100 text-secondary-600 dark:bg-secondary-900/30 dark:text-secondary-400",
   DOCUMENT: "bg-muted text-muted-foreground",
 };

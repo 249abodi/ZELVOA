@@ -6,6 +6,8 @@ import { prisma } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/icons";
 
+export const metadata = { title: "Audit Log" };
+
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 25;

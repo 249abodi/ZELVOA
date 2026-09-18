@@ -3,14 +3,83 @@ import { can } from "@/lib/rbac";
 import { handleApiError, unauthorized, ok, fail, notFound } from "@/lib/api";
 import { prisma } from "@/lib/db";
 import { inboxUpdateSchema } from "@/lib/validators";
+import { hasDevScope } from "@/lib/inbox/source";
 import type { Prisma } from "@prisma/client";
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const context = await getCurrentContext();
+    if (!context) return unauthorized();
+    if (!context.workspace) return fail("No workspace selected.", 400);
+    if (!can(context.role, "inbox.view")) {
+      return fail("You do not have permission to view conversations.", 403);
+    }
+
+    const { id } = await params;
+    const conversation = await prisma.conversation.findFirst({
+      where: { id, workspaceId: context.workspace.id },
+      include: {
+        assignee: { select: { id: true, name: true, email: true } },
+        socialAccount: {
+          select: { id: true, name: true, platform: true, scopes: true },
+        },
+        messages: {
+          orderBy: { sentAt: "asc" },
+          select: {
+            id: true,
+            direction: true,
+            content: true,
+            sentAt: true,
+            readAt: true,
+            sender: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+    if (!conversation) return notFound("Conversation not found.");
+
+    return ok({
+      id: conversation.id,
+      platform: conversation.platform,
+      contactName: conversation.contactName,
+      contactUsername: conversation.contactUsername,
+      contactAvatarUrl: conversation.contactAvatarUrl,
+      status: conversation.status,
+      priority: conversation.priority,
+      tags: conversation.tags,
+      notes: conversation.notes,
+      devMode: hasDevScope(conversation.socialAccount?.scopes ?? []),
+      assignee: conversation.assignee,
+      account: conversation.socialAccount
+        ? {
+            id: conversation.socialAccount.id,
+            name: conversation.socialAccount.name,
+            platform: conversation.socialAccount.platform,
+          }
+        : null,
+      messages: conversation.messages.map((m) => ({
+        id: m.id,
+        direction: m.direction,
+        content: m.content,
+        sentAt: m.sentAt,
+        read: m.readAt !== null,
+        sender: m.sender,
+      })),
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const context = await getCurrentContext();
     if (!context) return unauthorized();
     if (!context.workspace) return fail("No workspace selected.", 400);
-    if (!can(context.role, "inbox.view")) {
+    if (!can(context.role, "inbox.reply")) {
       return fail("You do not have permission to update conversations.", 403);
     }
 

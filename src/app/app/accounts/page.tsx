@@ -4,6 +4,8 @@ import { can } from "@/lib/rbac";
 import { PageHeader } from "@/components/app/page-header";
 import { AccountsPageClient } from "@/components/accounts/accounts-page";
 
+export const metadata = { title: "Accounts" };
+
 export const dynamic = "force-dynamic";
 
 export default async function AccountsPage({

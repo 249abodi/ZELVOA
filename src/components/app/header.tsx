@@ -33,8 +33,12 @@ export function Header({
   const { toastSuccess } = useToast();
 
   async function logout() {
-    await fetch("/api/v1/auth/logout", { method: "POST" });
-    toastSuccess("Logged out");
+    try {
+      await fetch("/api/v1/auth/logout", { method: "POST" });
+    } catch {
+      return;
+    }
+    toastSuccess(dict["header.loggedOut"]);
     router.push("/login");
     router.refresh();
   }

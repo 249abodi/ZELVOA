@@ -208,7 +208,7 @@ function PlatformBadge({ platform }: { platform: string }) {
   const map: Record<string, { icon: IconName; cls: string }> = {
     INSTAGRAM: {
       icon: "instagram",
-      cls: "bg-accent-100 text-accent-700 dark:bg-accent-900/30 dark:text-accent-300",
+      cls: "bg-accent-100 text-accent-600 dark:bg-accent-600/30 dark:text-accent-300",
     },
     FACEBOOK: {
       icon: "facebook",

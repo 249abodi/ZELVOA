@@ -47,14 +47,14 @@ export function Modal({
   return (
     <div
       className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto p-4 sm:p-8"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
       role="dialog"
       aria-modal="true"
       aria-label={title}
     >
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-[2px]" />
+      <div
+        className="fixed inset-0 bg-brand-background-dark/50 backdrop-blur-[2px]"
+        onMouseDown={() => onClose()}
+      />
       <div
         ref={panelRef}
         className={cn(

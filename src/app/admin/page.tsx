@@ -6,6 +6,8 @@ import { Icon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
+export const metadata = { title: "Admin Overview" };
+
 export const dynamic = "force-dynamic";
 
 function StatTile({

@@ -3,6 +3,7 @@ import { getCurrentContext } from "@/lib/auth";
 import { canAccessAdmin } from "@/lib/admin";
 import { redirect } from "next/navigation";
 import { Icon } from "@/components/icons";
+import { ZelvoaMark } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -22,9 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-border bg-card lg:block">
         <div className="flex h-full flex-col">
           <div className="flex items-center gap-2 border-b border-border px-5 py-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Icon name="shield" size={16} />
-            </div>
+            <ZelvoaMark size={32} />
             <div>
               <div className="text-sm font-semibold">ZELVOA Admin</div>
               <div className="text-xs text-muted-foreground">Platform console</div>

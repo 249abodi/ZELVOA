@@ -14,6 +14,8 @@ import { EmptyState } from "@/components/ui/states";
 import { formatNumber, cn } from "@/lib/utils";
 import { format, isTomorrow } from "date-fns";
 
+export const metadata = { title: "Dashboard" };
+
 const greeting = () => {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -80,7 +82,7 @@ export default async function DashboardPage() {
       {/* Greeting */}
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold tracking-tight">
-          {greeting()} 👋
+          {greeting()}
         </h1>
         <p className="text-muted-foreground">Here&apos;s what&apos;s happening today.</p>
       </div>
@@ -156,6 +158,7 @@ export default async function DashboardPage() {
                 : "Connect your first social account to start managing your content."
             }
             actionLabel={hasAccounts ? "Create Post" : "Connect Account"}
+            actionHref={hasAccounts ? "/app/posts/create" : "/app/accounts/select"}
             actionIcon={hasAccounts ? "create" : "accounts"}
           />
         ) : (
@@ -278,7 +281,7 @@ function UpcomingRow({
 function PlatformBadge({ platform }: { platform: string }) {
   const styles: Record<string, { cls: string; icon: string; label: string }> = {
     INSTAGRAM: {
-      cls: "bg-accent-100 text-accent-700 dark:bg-accent-900/30 dark:text-accent-300",
+      cls: "bg-accent-100 text-accent-600 dark:bg-accent-600/30 dark:text-accent-300",
       icon: "instagram",
       label: "Instagram",
     },

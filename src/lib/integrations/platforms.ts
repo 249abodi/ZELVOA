@@ -31,7 +31,7 @@ export const PLATFORM_META: Record<Platform, PlatformMeta> = {
     authUrlBuilder: "oauth2",
     envClientId: "INSTAGRAM_CLIENT_ID",
     envClientSecret: "INSTAGRAM_CLIENT_SECRET",
-    iconClass: "bg-accent-100 text-accent-700 dark:bg-accent-900/30 dark:text-accent-300",
+    iconClass: "bg-accent-100 text-accent-600 dark:bg-accent-600/30 dark:text-accent-300",
     publishingImplemented: true,
     limits: {
       captionLimit: 2200,

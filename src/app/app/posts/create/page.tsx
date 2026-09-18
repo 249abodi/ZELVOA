@@ -42,10 +42,15 @@ export default function CreatePostPage() {
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
 
   useEffect(() => {
-    const editId = new URLSearchParams(window.location.search).get("edit");
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get("edit");
     if (editId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setEditingPostId(editId);
+    }
+    const date = params.get("date");
+    if (date) {
+      setScheduledFor(new Date(date).toISOString().slice(0, 16));
     }
   }, []);
 

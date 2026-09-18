@@ -1,5 +1,7 @@
 import { Icon, type IconName } from "@/components/icons";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export function EmptyState({
   icon = "inbox",
@@ -7,6 +9,7 @@ export function EmptyState({
   description,
   actionLabel,
   onAction,
+  actionHref,
   actionIcon,
 }: {
   icon?: IconName;
@@ -14,6 +17,7 @@ export function EmptyState({
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
+  actionHref?: string;
   actionIcon?: IconName;
 }) {
   return (
@@ -31,6 +35,12 @@ export function EmptyState({
         <Button onClick={onAction} icon={actionIcon} className="mt-1">
           {actionLabel}
         </Button>
+      )}
+      {actionLabel && actionHref && (
+        <Link href={actionHref} className={cn(buttonVariants({ variant: "default" }), "mt-1")}>
+          {actionIcon && <Icon name={actionIcon} size={16} />}
+          {actionLabel}
+        </Link>
       )}
     </div>
   );

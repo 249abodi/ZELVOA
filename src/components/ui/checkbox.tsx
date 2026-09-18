@@ -9,6 +9,7 @@ export function Checkbox({
   label,
   description,
   disabled,
+  "aria-label": ariaLabel,
 }: {
   className?: string;
   checked: boolean;
@@ -17,6 +18,7 @@ export function Checkbox({
   label?: string;
   description?: string;
   disabled?: boolean;
+  "aria-label"?: string;
 }) {
   return (
     <label
@@ -30,6 +32,7 @@ export function Checkbox({
         <input
           id={id}
           type="checkbox"
+          aria-label={ariaLabel}
           checked={checked}
           disabled={disabled}
           onChange={(e) => onCheckedChange(e.target.checked)}

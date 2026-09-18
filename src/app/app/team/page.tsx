@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/states";
 
+export const metadata = { title: "Team" };
+
 export const dynamic = "force-dynamic";
 
 export default async function TeamPage() {
@@ -38,9 +40,9 @@ export default async function TeamPage() {
     const styles: Record<string, string> = {
       OWNER: "bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300",
       ADMIN: "bg-secondary-100 text-secondary-700 dark:bg-secondary-900/40 dark:text-secondary-300",
-      CONTENT_MANAGER: "bg-accent-100 text-accent-700 dark:bg-accent-900/40 dark:text-accent-300",
+      CONTENT_MANAGER: "bg-accent-100 text-accent-600 dark:bg-accent-600/40 dark:text-accent-300",
       DESIGNER: "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
-      SOCIAL_MEDIA_MANAGER: "bg-accent-100 text-accent-700 dark:bg-accent-900/40 dark:text-accent-300",
+      SOCIAL_MEDIA_MANAGER: "bg-accent-100 text-accent-600 dark:bg-accent-600/40 dark:text-accent-300",
       VIEWER: "bg-muted text-muted-foreground",
     };
     return styles[role] ?? styles.VIEWER;
