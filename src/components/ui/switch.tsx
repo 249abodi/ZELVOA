@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 
 export function Switch({
@@ -6,18 +8,21 @@ export function Switch({
   id,
   disabled,
   className,
+  "aria-label": ariaLabel,
 }: {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   id?: string;
   disabled?: boolean;
   className?: string;
+  "aria-label"?: string;
 }) {
   return (
     <button
       type="button"
       role="switch"
       id={id}
+      aria-label={ariaLabel}
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
@@ -29,8 +34,8 @@ export function Switch({
     >
       <span
         className={cn(
-          "pointer-events-none block h-4.5 w-4.5 rounded-full bg-white shadow-sm transition-transform duration-150",
-          checked ? "translate-x-[18px]" : "translate-x-0.5"
+          "pointer-events-none absolute top-1/2 block h-4.5 w-4.5 -translate-y-1/2 rounded-full bg-white shadow-sm transition-[inset-inline-start,inset-inline-end] duration-150",
+          checked ? "inset-inline-end-0.5" : "inset-inline-start-0.5"
         )}
       />
     </button>

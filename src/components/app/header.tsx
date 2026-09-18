@@ -13,12 +13,18 @@ import { Icon } from "@/components/icons";
 import { useToast } from "@/components/ui/toast";
 import { MobileNav } from "@/components/app/mobile-nav";
 import { Notifications } from "@/components/app/notifications";
+import { LocaleSwitcher } from "@/components/locale-switcher";
+import type { Dict, Locale } from "@/lib/i18n";
 
 export function Header({
+  dict,
+  locale,
   userName,
   userEmail,
   workspaceName,
 }: {
+  dict: Dict;
+  locale: Locale;
   userName: string;
   userEmail: string;
   workspaceName: string;
@@ -36,7 +42,7 @@ export function Header({
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6">
       <div className="flex items-center gap-3 lg:hidden">
-        <MobileNav />
+        <MobileNav dict={dict} />
       </div>
 
       <div className="hidden items-center gap-2 text-sm text-muted-foreground lg:flex">
@@ -45,6 +51,7 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-1.5">
+        <LocaleSwitcher locale={locale} />
         <Notifications />
 
         <Dropdown
@@ -52,7 +59,7 @@ export function Header({
           trigger={
             <button className="flex items-center gap-2.5 rounded-lg p-1.5 transition-colors hover:bg-muted">
               <Avatar name={userName} size="sm" />
-              <span className="hidden text-left sm:block">
+              <span className="hidden text-start sm:block">
                 <span className="block max-w-[160px] truncate text-sm font-medium">
                   {userName}
                 </span>
@@ -64,19 +71,24 @@ export function Header({
             </button>
           }
         >
-          <DropdownLabel>Account</DropdownLabel>
+          <DropdownLabel>{dict["header.account"]}</DropdownLabel>
           <DropdownItem
             icon="user"
-            label="Profile"
+            label={dict["header.profile"]}
             onClick={() => router.push("/app/settings")}
           />
           <DropdownItem
             icon="settings"
-            label="Settings"
+            label={dict["header.settings"]}
             onClick={() => router.push("/app/settings")}
           />
           <DropdownSeparator />
-          <DropdownItem icon="logout" label="Log out" onClick={logout} danger />
+          <DropdownItem
+            icon="logout"
+            label={dict["header.logout"]}
+            onClick={logout}
+            danger
+          />
         </Dropdown>
       </div>
     </header>

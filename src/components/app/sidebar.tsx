@@ -5,40 +5,43 @@ import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 import { ZelvoaLogo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
+import type { Dict } from "@/lib/i18n";
 
 export interface NavItem {
-  label: string;
+  labelKey: keyof Dict;
   href: string;
   icon: IconName;
 }
 
 export const mainNav: NavItem[] = [
-  { label: "Dashboard", href: "/app/dashboard", icon: "dashboard" },
-  { label: "Content Calendar", href: "/app/calendar", icon: "calendar" },
-  { label: "Create Post", href: "/app/posts/create", icon: "create" },
-  { label: "AI Assistant", href: "/app/ai", icon: "sparkles" },
-  { label: "Media Library", href: "/app/media", icon: "media" },
-  { label: "Inbox", href: "/app/inbox", icon: "inbox" },
-  { label: "Analytics", href: "/app/analytics", icon: "analytics" },
-  { label: "Campaigns", href: "/app/campaigns", icon: "campaigns" },
+  { labelKey: "nav.dashboard", href: "/app/dashboard", icon: "dashboard" },
+  { labelKey: "nav.calendar", href: "/app/calendar", icon: "calendar" },
+  { labelKey: "nav.create", href: "/app/posts/create", icon: "create" },
+  { labelKey: "nav.ai", href: "/app/ai", icon: "sparkles" },
+  { labelKey: "nav.media", href: "/app/media", icon: "media" },
+  { labelKey: "nav.inbox", href: "/app/inbox", icon: "inbox" },
+  { labelKey: "nav.analytics", href: "/app/analytics", icon: "analytics" },
+  { labelKey: "nav.campaigns", href: "/app/campaigns", icon: "campaigns" },
 ];
 
 export const managementNav: NavItem[] = [
-  { label: "Team", href: "/app/team", icon: "team" },
-  { label: "Approvals", href: "/app/approvals", icon: "approvals" },
-  { label: "Social Accounts", href: "/app/accounts", icon: "accounts" },
-  { label: "Billing", href: "/app/billing", icon: "billing" },
-  { label: "Settings", href: "/app/settings", icon: "settings" },
+  { labelKey: "nav.team", href: "/app/team", icon: "team" },
+  { labelKey: "nav.approvals", href: "/app/approvals", icon: "approvals" },
+  { labelKey: "nav.accounts", href: "/app/accounts", icon: "accounts" },
+  { labelKey: "nav.billing", href: "/app/billing", icon: "billing" },
+  { labelKey: "nav.settings", href: "/app/settings", icon: "settings" },
 ];
 
 export const adminNav: NavItem[] = [
-  { label: "Admin Console", href: "/admin", icon: "shield" },
+  { labelKey: "nav.admin", href: "/admin", icon: "shield" },
 ];
 
 export function Sidebar({
+  dict,
   organizationName,
   role,
 }: {
+  dict: Dict;
   organizationName: string;
   role: string | null;
 }) {
@@ -50,7 +53,7 @@ export function Sidebar({
       : active === href || active.startsWith(`${href}`);
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-sidebar lg:flex">
+    <aside className="fixed inset-y-0 start-0 z-30 hidden w-60 flex-col border-e border-border bg-sidebar lg:flex">
       <div className="flex h-16 items-center gap-2.5 border-b border-border px-5">
         <Link href="/app/dashboard" className="flex items-center gap-2.5">
           <ZelvoaLogo variant="full" size={30} />
@@ -59,17 +62,24 @@ export function Sidebar({
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
         <SidebarSection
-          title="Manage"
+          title={dict["app.manage"]}
           items={mainNav}
           isActive={isActive}
+          dict={dict}
         />
         <SidebarSection
-          title="Workspace"
+          title={dict["app.workspace"]}
           items={managementNav}
           isActive={isActive}
+          dict={dict}
         />
         {role === "OWNER" && (
-          <SidebarSection title="Platform" items={adminNav} isActive={isActive} />
+          <SidebarSection
+            title={dict["app.platform"]}
+            items={adminNav}
+            isActive={isActive}
+            dict={dict}
+          />
         )}
       </nav>
 
@@ -94,10 +104,12 @@ function SidebarSection({
   title,
   items,
   isActive,
+  dict,
 }: {
   title: string;
   items: NavItem[];
   isActive: (href: string) => boolean;
+  dict: Dict;
 }) {
   return (
     <div>
@@ -121,7 +133,7 @@ function SidebarSection({
                 size={18}
                 className={isActive(item.href) ? "text-primary" : ""}
               />
-              {item.label}
+              {dict[item.labelKey]}
             </Link>
           </li>
         ))}

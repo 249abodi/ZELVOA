@@ -7,12 +7,12 @@ import { Icon, type IconName } from "@/components/icons";
 export function Dropdown({
   trigger,
   children,
-  align = "right",
+  align = "end",
   width = "w-56",
 }: {
   trigger: ReactNode;
   children: ReactNode;
-  align?: "left" | "right";
+  align?: "start" | "end";
   width?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -40,7 +40,7 @@ export function Dropdown({
         <div
           className={cn(
             "absolute top-full z-[40] mt-1 overflow-hidden rounded-xl border border-border bg-card p-1 shadow-md animate-in fade-in zoom-in-95",
-            align === "right" ? "right-0" : "left-0",
+            align === "end" ? "end-0" : "start-0",
             width
           )}
         >
@@ -70,7 +70,7 @@ export function DropdownItem({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors disabled:opacity-50",
+        "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-start text-sm transition-colors disabled:opacity-50",
         danger
           ? "text-destructive hover:bg-destructive/10"
           : "text-foreground hover:bg-muted"

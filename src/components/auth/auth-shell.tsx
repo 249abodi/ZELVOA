@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ZelvoaLogo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return <>{children}</>;
@@ -26,7 +27,8 @@ export function AuthShell({
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[400px] bg-[radial-gradient(ellipse_at_top,rgba(124,99,247,0.14),transparent_60%)]"
       />
-      <div className="absolute right-4 top-4">
+      <div className="absolute end-4 top-4 flex items-center gap-1.5">
+        <LocaleSwitcher />
         <ThemeToggle />
       </div>
       <Link href="/" className="mb-4 flex items-center justify-center">

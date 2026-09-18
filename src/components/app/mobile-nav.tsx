@@ -7,8 +7,9 @@ import { ZelvoaLogo } from "@/components/brand/logo";
 import { mainNav, managementNav, type NavItem } from "@/components/app/sidebar";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import type { Dict } from "@/lib/i18n";
 
-export function MobileNav() {
+export function MobileNav({ dict }: { dict: Dict }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
@@ -24,7 +25,7 @@ export function MobileNav() {
       <Button
         variant="ghost"
         size="icon"
-        aria-label="Open menu"
+        aria-label={dict["menu.open"]}
         className="lg:hidden"
         onClick={() => setOpen(true)}
       >
@@ -33,24 +34,30 @@ export function MobileNav() {
       {open && (
         <div className="fixed inset-0 z-[60] lg:hidden">
           <div
-            className="fixed inset-0 bg-black/50"
+            className="fixed inset-0 bg-brand-background-dark/50"
             onClick={close}
           />
-          <div className="fixed inset-y-0 left-0 flex w-72 flex-col bg-card shadow-lg animate-in slide-in-from-left">
+          <div className="fixed inset-y-0 start-0 flex w-72 flex-col bg-card shadow-lg animate-in slide-in-from-left">
             <div className="flex h-16 items-center justify-between border-b border-border px-4">
               <Link href="/app/dashboard" className="flex items-center gap-2.5" onClick={close}>
                 <ZelvoaLogo variant="compact" size={28} />
               </Link>
-              <Button variant="ghost" size="icon-sm" onClick={close}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={dict["menu.close"]}
+                onClick={close}
+              >
                 <Icon name="x" size={16} />
               </Button>
             </div>
             <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
-              <MobileSection title="Manage" items={mainNav} onNavigate={close} />
+              <MobileSection title={dict["app.manage"]} items={mainNav} onNavigate={close} dict={dict} />
               <MobileSection
-                title="Workspace"
+                title={dict["app.workspace"]}
                 items={managementNav}
                 onNavigate={close}
+                dict={dict}
               />
             </nav>
           </div>
@@ -64,10 +71,12 @@ function MobileSection({
   title,
   items,
   onNavigate,
+  dict,
 }: {
   title: string;
   items: NavItem[];
   onNavigate: () => void;
+  dict: Dict;
 }) {
   return (
     <div>
@@ -86,7 +95,7 @@ function MobileSection({
               )}
             >
               <Icon name={item.icon} size={18} />
-              {item.label}
+              {dict[item.labelKey]}
             </Link>
           </li>
         ))}
