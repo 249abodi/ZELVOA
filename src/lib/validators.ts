@@ -10,6 +10,26 @@ export const registerSchema = z.object({
   organizationName: z.string().min(2, "Workspace name is required").max(100).optional(),
   timezone: z.string().optional(),
   locale: z.string().optional(),
+  inviteToken: z.string().min(1).optional(),
+});
+
+export const createInvitationSchema = z.object({
+  email: z.string().email("Enter a valid email address"),
+  role: z.enum([
+    "ADMIN",
+    "CONTENT_MANAGER",
+    "DESIGNER",
+    "SOCIAL_MEDIA_MANAGER",
+    "VIEWER",
+  ]),
+});
+
+export const acceptInvitationSchema = z.object({
+  token: z.string().min(1),
+});
+
+export const revokeInvitationSchema = z.object({
+  id: z.string().min(1),
 });
 
 export const loginSchema = z.object({

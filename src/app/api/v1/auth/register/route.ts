@@ -6,6 +6,7 @@ import { SESSION_COOKIE } from "@/lib/auth";
 import { registerSchema } from "@/lib/validators";
 import { handleApiError, fail, created } from "@/lib/api";
 import { checkAuthRateLimit } from "@/lib/auth-rate-limit";
+import { findInvitationForToken, isInvitationValid } from "@/lib/invitations";
 
 function setSessionCookie(response: NextResponse, token: string) {
   response.cookies.set({
@@ -50,6 +51,18 @@ export async function POST(request: Request) {
       return fail("An account with this email already exists.", 409);
     }
 
+    const invitation = body.inviteToken
+      ? await findInvitationForToken(body.inviteToken)
+      : null;
+    if (body.inviteToken) {
+      if (!invitation || !isInvitationValid(invitation)) {
+        return fail("This invitation is invalid or has expired.", 400);
+      }
+      if (invitation.email.toLowerCase() !== email) {
+        return fail("This invitation was sent to a different email address.", 403);
+      }
+    }
+
     const passwordHash = hashPassword(body.password);
 
     const user = await prisma.$transaction(async (tx) => {
@@ -64,6 +77,34 @@ export async function POST(request: Request) {
       });
 
       await tx.userSettings.create({ data: { userId: createdUser.id } });
+
+      if (invitation) {
+        await tx.organizationMember.create({
+          data: {
+            organizationId: invitation.organizationId,
+            userId: createdUser.id,
+            role: invitation.role,
+            status: "ACTIVE",
+            joinedAt: new Date(),
+          },
+        });
+
+        await tx.invitation.update({
+          where: { id: invitation.id },
+          data: {
+            status: "ACCEPTED",
+            acceptedAt: new Date(),
+            acceptedUserId: createdUser.id,
+          },
+        });
+
+        return {
+          ...createdUser,
+          organizationId: invitation.organizationId,
+          workspaceId: invitation.workspaceId,
+          role: invitation.role,
+        };
+      }
 
       const orgName =
         body.organizationName?.trim() || `${body.name.trim()}'s workspace`;
@@ -120,20 +161,21 @@ export async function POST(request: Request) {
         },
       });
 
-      return { ...createdUser, organizationId: organization.id, workspaceId: workspace.id };
+      return { ...createdUser, organizationId: organization.id, workspaceId: workspace.id, role: "OWNER" };
     });
 
     const token = await signSession({
       sub: user.id,
       org: user.organizationId,
       ws: user.workspaceId,
-      role: "OWNER",
+      role: user.role,
     });
 
     const response = created({
       user: { id: user.id, email: user.email, name: user.name },
       organizationId: user.organizationId,
       workspaceId: user.workspaceId,
+      role: user.role,
     });
     setSessionCookie(response, token);
     return response;

@@ -5,7 +5,7 @@ import { ROLES, can } from "@/lib/rbac";
 import { PageHeader } from "@/components/app/page-header";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { InviteMemberButton } from "@/components/team/invite-member-button";
 import {
   Card,
   CardContent,
@@ -52,7 +52,7 @@ export default async function TeamPage() {
         title="Team"
         description="Manage members and roles in this workspace."
         icon="team"
-        actions={canInvite ? <Button icon="user">Invite member</Button> : <Badge variant="secondary">Read-only</Badge>}
+        actions={canInvite ? <InviteMemberButton /> : <Badge variant="secondary">Read-only</Badge>}
       />
 
       <Card className="mb-6">
