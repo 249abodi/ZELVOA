@@ -53,7 +53,7 @@ const features = [
 const pricing = [
   {
     name: "Free",
-    price: "RM 0",
+    price: "$0",
     period: "forever",
     description: "Get started with one account and ten posts a month.",
     features: ["1 social account", "10 posts/month", "Basic analytics"],
@@ -62,7 +62,7 @@ const pricing = [
   },
   {
     name: "Starter",
-    price: "RM 29",
+    price: "$29",
     period: "per month",
     description: "For growing creators and small teams.",
     features: [
@@ -76,7 +76,7 @@ const pricing = [
   },
   {
     name: "Business",
-    price: "RM 79",
+    price: "$79",
     period: "per month",
     description: "For businesses managing multiple channels.",
     features: [
@@ -91,7 +91,7 @@ const pricing = [
   },
   {
     name: "Agency",
-    price: "RM 199",
+    price: "$199",
     period: "per month",
     description: "For agencies managing many clients.",
     features: [

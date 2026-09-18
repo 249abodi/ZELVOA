@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getCurrentContext } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getBillingInfo } from "@/lib/billing/limits";
@@ -7,9 +6,13 @@ import { can } from "@/lib/rbac";
 import { PageHeader } from "@/components/app/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/format";
 import LicensePanel from "@/components/billing/license-panel";
+
+export const metadata = { title: "Billing" };
 
 export const dynamic = "force-dynamic";
 
@@ -26,14 +29,14 @@ function UsageBar({ row }: { row: UsageRow }) {
     <div>
       <div className="mb-1 flex items-center justify-between text-sm">
         <span className="text-muted-foreground">{row.label}</span>
-        <span className={cn("font-medium tabular-nums", row.exceeded ? "text-red-500" : "")}>
+        <span className={cn("font-medium tabular-nums", row.exceeded ? "text-destructive" : "")}>
           {row.used}
           <span className="text-muted-foreground"> / {row.max}</span>
         </span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-muted">
         <div
-          className={cn("h-full rounded-full", row.exceeded ? "bg-red-500" : "bg-primary")}
+          className={cn("h-full rounded-full", row.exceeded ? "bg-destructive" : "bg-primary")}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -108,16 +111,17 @@ export default async function BillingPage() {
                 <Badge variant="secondary">{subscription?.status ?? "free"}</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                {plan ? `${plan.currency} ${plan.priceMonthly}/month`.replace("MYR 0", "Free") : "No active subscription"}
+                {plan
+                  ? plan.priceMonthly === 0
+                    ? "Free"
+                    : `${formatCurrency(plan.priceMonthly, plan.currency)}/month`
+                  : "No active subscription"}
               </p>
             </div>
           </div>
-          <Link
-            href="/register"
-            className="inline-flex h-9 items-center rounded-lg border border-border-strong bg-card px-4 text-sm font-medium hover:bg-muted"
-          >
-            Manage subscription
-          </Link>
+          <Button variant="outline" disabled>
+            Coming soon
+          </Button>
         </CardContent>
       </Card>
 
@@ -181,9 +185,13 @@ export default async function BillingPage() {
                 </div>
                 <div className="mt-2 flex items-baseline gap-1">
                   <span className="text-2xl font-bold">
-                    {p.currency} {p.priceMonthly}
+                    {p.priceMonthly === 0
+                      ? "Free"
+                      : `${formatCurrency(p.priceMonthly, p.currency)}`}
                   </span>
-                  <span className="text-xs text-muted-foreground">/month</span>
+                  {p.priceMonthly > 0 && (
+                    <span className="text-xs text-muted-foreground">/month</span>
+                  )}
                 </div>
                 {p.description && <CardDescription>{p.description}</CardDescription>}
               </CardHeader>
