@@ -1,0 +1,1477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ZELVOA — Visual Identity & Brand Guidelines Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@500;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  @font-face {
+    font-family: "Zelvoa";
+    src: url("zelvoa-font.ttf") format("truetype");
+    font-weight: 400 900;
+    font-display: block;
+  }
+
+  :root {
+    --brand-primary: #7c63f7;
+    --brand-primary-strong: #6d28d9;
+    --brand-secondary: #2563eb;
+    --brand-accent: #a855f7;
+    --brand-dark: #0b0e14;
+    --brand-dark-surface: #11151f;
+    --brand-foreground: #1e2536;
+    --brand-muted: #616c82;
+    --brand-border: #e4e7ef;
+    --brand-subtle: #f8f9fb;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  html, body {
+    width: 1600px;
+    height: 1910px;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    background-color: #f1f3f7;
+    background-image: 
+      radial-gradient(circle at 1px 1px, rgba(124, 99, 247, 0.08) 1px, transparent 0),
+      linear-gradient(to bottom, #f8f9fc 0%, #edf0f6 100%);
+    background-size: 24px 24px, 100% 100%;
+    color: var(--brand-foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .sheet {
+    width: 1600px;
+    height: 1910px;
+    padding: 36px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  /* ---- Common Typography & Helpers ---- */
+  .wm {
+    font-family: "Zelvoa", "Segoe UI", sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .mono {
+    font-family: "JetBrains Mono", Consolas, monospace;
+  }
+
+  .card {
+    background: #ffffff;
+    border: 1px solid var(--brand-border);
+    border-radius: 16px;
+    box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02);
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-dark {
+    background: var(--brand-dark);
+    border: 1px solid #1f2637;
+    color: #ffffff;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+  }
+
+  .cap {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--brand-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex: 0 0 auto;
+  }
+
+  .card-dark .cap {
+    color: #94a0b8;
+  }
+
+  .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background: #f1f3f8;
+    color: #4a5568;
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+
+  .card-dark .num {
+    background: #1e2536;
+    color: #cbd5e1;
+  }
+
+  .rule2 {
+    flex: 1;
+    height: 1px;
+    background: #edf0f5;
+  }
+
+  .card-dark .rule2 {
+    background: #1f2637;
+  }
+
+  /* ---- Header Bar ---- */
+  .header-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+    border: 1px solid var(--brand-border);
+    border-radius: 18px;
+    padding: 16px 28px;
+    box-shadow: 0 6px 20px -3px rgba(15, 23, 42, 0.05);
+    flex: 0 0 auto;
+    height: 88px;
+  }
+
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .header-brand .logo-mark {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px -2px rgba(124, 99, 247, 0.35);
+  }
+
+  .header-brand .titles {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .header-brand .titles .title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: var(--brand-foreground);
+    line-height: 1.1;
+  }
+
+  .header-brand .titles .subtitle {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    color: var(--brand-primary-strong);
+    margin-top: 3px;
+  }
+
+  .header-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .header-center .slogan-primary {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--brand-foreground);
+    letter-spacing: -0.01em;
+  }
+
+  .header-center .slogan-secondary {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--brand-muted);
+    margin-top: 2px;
+  }
+
+  .header-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .personality-pills {
+    display: flex;
+    gap: 6px;
+  }
+
+  .personality-pill {
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: #f3f1ff;
+    border: 1px solid #d5cefe;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-primary-strong);
+    letter-spacing: 0.5px;
+  }
+
+  .version-tag {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--brand-muted);
+    letter-spacing: 0.8px;
+  }
+
+  /* ---- Grid Layouts ---- */
+  .grid-primary-logos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    height: 226px;
+  }
+
+  .primary-logo-stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .primary-lockup {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+
+  .primary-lockup-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .primary-lockup-text .brand-name {
+    font-size: 42px;
+    line-height: 1;
+  }
+
+  .primary-lockup-text .brand-tagline {
+    font-size: 13.5px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    margin-top: 4px;
+  }
+
+  .clear-space-guide {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 24px;
+    border: 1px dashed rgba(124, 99, 247, 0.4);
+    border-radius: 12px;
+    background: rgba(124, 99, 247, 0.02);
+    position: relative;
+  }
+
+  .card-dark .clear-space-guide {
+    border-color: rgba(146, 124, 251, 0.4);
+    background: rgba(146, 124, 251, 0.04);
+  }
+
+  .space-label {
+    position: absolute;
+    top: -9px;
+    left: 14px;
+    background: #ffffff;
+    padding: 0 6px;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    letter-spacing: 1px;
+  }
+
+  .card-dark .space-label {
+    background: var(--brand-dark);
+    color: #927cfb;
+  }
+
+  /* ---- Section: Marks & Variations ---- */
+  .marks-row {
+    display: grid;
+    grid-template-columns: 280px 280px 1fr 340px;
+    gap: 18px;
+    height: 246px;
+  }
+
+  .center-stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .mark-metric {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--brand-muted);
+  }
+
+  .app-icon-squircle {
+    width: 104px;
+    height: 104px;
+    border-radius: 24px;
+    background: #1c1839;
+    box-shadow: 0 12px 26px -4px rgba(28, 24, 57, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .wordmark-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+  }
+
+  .wordmark-large {
+    font-size: 64px;
+    color: var(--brand-foreground);
+    line-height: 1;
+    letter-spacing: 0.06em;
+  }
+
+  .wordmark-sub {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--brand-muted);
+    letter-spacing: 0.8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .variations-matrix {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 10px;
+    height: 100%;
+  }
+
+  .var-box {
+    background: var(--brand-subtle);
+    border: 1px solid #eef0f5;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .var-box-dark {
+    background: #11151f;
+    border-color: #1f2637;
+  }
+
+  .var-box-navy {
+    background: #241b4e;
+    border-color: #3b3074;
+  }
+
+  .var-name {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--brand-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  .var-box-dark .var-name, .var-box-navy .var-name {
+    color: #94a0b8;
+  }
+
+  /* ---- Section: Colors & Gradients ---- */
+  .color-section {
+    display: grid;
+    grid-template-columns: 1.45fr 1fr;
+    gap: 18px;
+    height: 300px;
+  }
+
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: 1fr 1fr;
+    gap: 10px;
+    height: 100%;
+  }
+
+  .swatch-item {
+    border-radius: 10px;
+    border: 1px solid var(--brand-border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+  }
+
+  .swatch-color {
+    height: 42px;
+    width: 100%;
+    position: relative;
+    flex: 0 0 42px;
+  }
+
+  .swatch-details {
+    padding: 6px 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: #ffffff;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .swatch-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-foreground);
+    line-height: 1.2;
+  }
+
+  .swatch-hex {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--brand-primary-strong);
+    line-height: 1.2;
+  }
+
+  .swatch-role {
+    font-size: 9px;
+    color: var(--brand-muted);
+    line-height: 1.2;
+  }
+
+  .gradient-showcase {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    justify-content: space-between;
+  }
+
+  .grad-bar {
+    height: 70px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #7c63f7 0%, #2563eb 100%);
+    box-shadow: 0 8px 24px -4px rgba(124, 99, 247, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+  }
+
+  .grad-specs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .spec-box {
+    background: var(--brand-subtle);
+    border: 1px solid var(--brand-border);
+    border-radius: 10px;
+    padding: 8px 12px;
+  }
+
+  .spec-box .label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--brand-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .spec-box .val {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--brand-foreground);
+    margin-top: 2px;
+  }
+
+  .css-snippet {
+    background: #0b0e14;
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 11px;
+    border: 1px solid #1f2637;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* ---- Section: Typography ---- */
+  .typo-section {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: 18px;
+    height: 280px;
+  }
+
+  .font-family-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .font-hero {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid #edf0f5;
+    padding-bottom: 8px;
+  }
+
+  .font-hero-name {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--brand-foreground);
+    letter-spacing: -0.02em;
+  }
+
+  .font-hero-badge {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--brand-primary-strong);
+    background: #f3f1ff;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+
+  .alphabet-stream {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: #4a5568;
+    letter-spacing: 1.4px;
+    margin-top: 8px;
+  }
+
+  .weights-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    border-top: 1px solid #edf0f5;
+    padding-top: 8px;
+  }
+
+  .weight-chip {
+    font-size: 11.5px;
+    color: var(--brand-foreground);
+  }
+
+  .type-scale-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: center;
+    height: 100%;
+  }
+
+  .scale-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid #f1f3f8;
+    padding-bottom: 6px;
+  }
+
+  .scale-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .scale-meta {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--brand-muted);
+    width: 175px;
+    flex: 0 0 175px;
+  }
+
+  .scale-sample {
+    flex: 1;
+    color: var(--brand-foreground);
+  }
+
+  /* ---- Section: UI Style & System Examples ---- */
+  .ui-section {
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
+    gap: 18px;
+    height: 300px;
+  }
+
+  .ui-mockup-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
+  }
+
+  /* Mini Header Bar Mockup */
+  .mock-header {
+    background: #ffffff;
+    border: 1px solid var(--brand-border);
+    border-radius: 12px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  }
+
+  .mock-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mock-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mock-nav-item {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--brand-muted);
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+
+  .mock-nav-item.active {
+    color: var(--brand-primary-strong);
+    background: #f3f1ff;
+  }
+
+  .mock-btn {
+    background: var(--brand-primary-strong);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 6px rgba(109, 40, 217, 0.25);
+  }
+
+  /* Mini Post Card Mockup */
+  .mock-post-card {
+    background: var(--brand-subtle);
+    border: 1px solid var(--brand-border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .post-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .platform-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .plat-badge {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  .plat-ig { background: #e1306c; }
+  .plat-fb { background: #1877f2; }
+  .plat-in { background: #0a66c2; }
+  .plat-tt { background: #000000; }
+  .plat-x  { background: #0f1419; }
+
+  .status-badge {
+    background: #dcfce7;
+    color: #15803d;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .post-preview-text {
+    font-size: 12px;
+    color: #334155;
+    line-height: 1.4;
+    background: #ffffff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #eef0f5;
+  }
+
+  .post-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10.5px;
+    color: var(--brand-muted);
+  }
+
+  /* Tokens & Style Specs */
+  .style-tokens-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    gap: 8px;
+  }
+
+  .token-row {
+    background: var(--brand-subtle);
+    border: 1px solid var(--brand-border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .token-info .name {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--brand-foreground);
+  }
+
+  .token-info .desc {
+    font-size: 10px;
+    color: var(--brand-muted);
+  }
+
+  .token-val {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--brand-primary-strong);
+    background: #ffffff;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--brand-border);
+  }
+
+  /* ---- Section: Logo Rules & Prohibitions ---- */
+  .rules-section {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    height: 180px;
+  }
+
+  .rule-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+  }
+
+  .rule-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--brand-foreground);
+  }
+
+  .rule-badge-ok {
+    background: #dcfce7;
+    color: #166534;
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .rule-badge-no {
+    background: #fee2e2;
+    color: #991b1b;
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .rule-text {
+    font-size: 11px;
+    color: #4a5568;
+    line-height: 1.4;
+  }
+
+  .rule-demo {
+    margin-top: auto;
+    background: var(--brand-subtle);
+    border: 1px solid #edf0f5;
+    border-radius: 8px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* ---- Footer ---- */
+  .sheet-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: #ffffff;
+    border: 1px solid var(--brand-border);
+    border-radius: 12px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--brand-muted);
+    flex: 0 0 auto;
+    height: 44px;
+  }
+
+  .sheet-footer .legal {
+    letter-spacing: 0.5px;
+  }
+
+  .sheet-footer .tags {
+    display: flex;
+    gap: 16px;
+  }
+
+  svg { display: block; flex: none; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <!-- ========================================== -->
+  <!-- 0. SVG SYMBOLS & DEFS                     -->
+  <!-- ========================================== -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <!-- Approved Primary Gradient -->
+      <linearGradient id="zelvoa-gradient" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#7c63f7"/>
+        <stop offset="1" stop-color="#2563eb"/>
+      </linearGradient>
+
+      <!-- Monochrome Black -->
+      <linearGradient id="black-fill" x1="0" y1="0" x2="32" y2="32">
+        <stop stop-color="#141419"/>
+        <stop offset="1" stop-color="#141419"/>
+      </linearGradient>
+    </defs>
+
+    <!-- Approved ZELVOA Mark Symbol (Verbatim geometry from src/app/icon.svg) -->
+    <symbol id="sym-mark-primary" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="8" fill="url(#zelvoa-gradient)"/>
+      <path d="M10 9h12l-12 14h12" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- Monochrome Black Mark -->
+    <symbol id="sym-mark-mono" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="8" fill="#141419"/>
+      <path d="M10 9h12l-12 14h12" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- Reversed White Mark Outline -->
+    <symbol id="sym-mark-white" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+      <path d="M10 9h12l-12 14h12" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- Navy App Icon Background Symbol -->
+    <symbol id="sym-mark-navy" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="8" fill="#1c1839"/>
+      <path d="M10 9h12l-12 14h12" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+  </svg>
+
+  <!-- ========================================== -->
+  <!-- 1. HEADER BAR                              -->
+  <!-- ========================================== -->
+  <header class="header-card">
+    <div class="header-brand">
+      <svg class="logo-mark" viewBox="0 0 32 32">
+        <use href="#sym-mark-primary"/>
+      </svg>
+      <div class="titles">
+        <span class="title wm">ZELVOA</span>
+        <span class="subtitle">Brand &amp; Visual Identity Sheet</span>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <span class="slogan-primary">Create. Schedule. Grow.</span>
+      <span class="slogan-secondary">All Your Social, One Place.</span>
+    </div>
+
+    <div class="header-meta">
+      <div class="personality-pills">
+        <span class="personality-pill">Modern</span>
+        <span class="personality-pill">Smart</span>
+        <span class="personality-pill">Fast</span>
+        <span class="personality-pill">Professional</span>
+      </div>
+      <span class="version-tag">Core Brand Guidelines • SaaS Identity</span>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- 2. PRIMARY LOGO LOCKUPS (LIGHT & DARK)     -->
+  <!-- ========================================== -->
+  <div class="grid-primary-logos">
+    <!-- Light Surface Primary Logo -->
+    <div class="card">
+      <div class="cap">
+        <span class="num">01</span>
+        <span>Primary Logo — Light Surface</span>
+        <span class="rule2"></span>
+      </div>
+      <div class="primary-logo-stage">
+        <div class="clear-space-guide">
+          <span class="space-label">CLEAR SPACE &ge; 1X</span>
+          <div class="primary-lockup">
+            <svg viewBox="0 0 32 32" width="68" height="68">
+              <use href="#sym-mark-primary"/>
+            </svg>
+            <div class="primary-lockup-text">
+              <span class="brand-name wm" style="color: #1e2536;">ZELVOA</span>
+              <span class="brand-tagline" style="color: #616c82;">Create. Schedule. Grow.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dark Surface Primary Logo -->
+    <div class="card card-dark">
+      <div class="cap">
+        <span class="num">02</span>
+        <span>Primary Logo — Dark Surface (#0B0E14)</span>
+        <span class="rule2"></span>
+      </div>
+      <div class="primary-logo-stage">
+        <div class="clear-space-guide">
+          <span class="space-label">CLEAR SPACE &ge; 1X</span>
+          <div class="primary-lockup">
+            <svg viewBox="0 0 32 32" width="68" height="68">
+              <use href="#sym-mark-primary"/>
+            </svg>
+            <div class="primary-lockup-text">
+              <span class="brand-name wm" style="color: #ffffff;">ZELVOA</span>
+              <span class="brand-tagline" style="color: rgba(255,255,255,0.75);">Create. Schedule. Grow.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 3. MARKS, APP ICON, WORDMARK & VARIATIONS  -->
+  <!-- ========================================== -->
+  <div class="marks-row">
+    <!-- Logo Mark -->
+    <div class="card">
+      <div class="cap">
+        <span class="num">03</span>
+        <span>Logo Mark</span>
+        <span class="rule2"></span>
+      </div>
+      <div class="center-stage">
+        <svg viewBox="0 0 32 32" width="116" height="116" style="filter: drop-shadow(0 8px 20px rgba(124, 99, 247, 0.28));">
+          <use href="#sym-mark-primary"/>
+        </svg>
+        <span class="mark-metric">1:1 Aspect Ratio • rx: 25%</span>
+      </div>
+    </div>
+
+    <!-- App Icon -->
+    <div class="card">
+      <div class="cap">
+        <span class="num">04</span>
+        <span>App Icon</span>
+        <span class="rule2"></span>
+      </div>
+      <div class="center-stage">
+        <div class="app-icon-squircle">
+          <svg viewBox="0 0 32 32" width="62" height="62">
+            <use href="#sym-mark-primary"/>
+          </svg>
+        </div>
+        <span class="mark-metric">iOS / Android / PWA Icon</span>
+      </div>
+    </div>
+
+    <!-- Wordmark -->
+    <div class="card">
+      <div class="cap">
+        <span class="num">05</span>
+        <span>Stand-Alone Wordmark</span>
+        <span class="rule2"></span>
+      </div>
+      <div class="wordmark-stage">
+        <span class="wordmark-large wm">ZELVOA</span>
+        <div class="wordmark-sub">
+          <span>Tracking: +0.06em (2px)</span>
+          <span>•</span>
+          <span>Weight: 700 Bold</span>
+          <span>•</span>
+          <span>All-Caps Geometry</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Variations Matrix -->
+    <div class="card">
+      <div class="cap">
+        <span class="num">06</span>
+        <span>Logo Variations</span>
+        <span class="rule2"></span>
+      </div>
+      <div class="variations-matrix">
+        <div class="var-box">
+          <svg viewBox="0 0 32 32" width="32" height="32">
+            <use href="#sym-mark-mono"/>
+          </svg>
+          <span class="var-name">Monochrome</span>
+        </div>
+
+        <div class="var-box var-box-dark">
+          <svg viewBox="0 0 32 32" width="32" height="32">
+            <use href="#sym-mark-white"/>
+          </svg>
+          <span class="var-name">Reversed</span>
+        </div>
+
+        <div class="var-box">
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <svg viewBox="0 0 32 32" width="16" height="16"><use href="#sym-mark-primary"/></svg>
+            <svg viewBox="0 0 32 32" width="28" height="28"><use href="#sym-mark-primary"/></svg>
+          </div>
+          <span class="var-name">16 &amp; 32px Favicon</span>
+        </div>
+
+        <div class="var-box var-box-navy">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: url(#zelvoa-gradient); display: flex; align-items: center; justify-content: center;">
+            <svg viewBox="0 0 32 32" width="20" height="20"><path d="M10 9h12l-12 14h12" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </div>
+          <span class="var-name">Social Avatar</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 4. COLOR PALETTE & PRIMARY GRADIENT        -->
+  <!-- ========================================== -->
+  <div class="color-section">
+    <!-- Swatches Grid -->
+    <div class="card">
+      <div class="cap">
+        <span class="num">07</span>
+        <span>Brand Color Palette (CSS Tokens)</span>
+        <span class="rule2"></span>
+      </div>
+      <div class="swatch-grid">
+        <!-- 1. Brand Primary -->
+        <div class="swatch-item">
+          <div class="swatch-color" style="background: #7c63f7;"></div>
+          <div class="swatch-details">
+            <span class="swatch-title">Brand Primary</span>
+            <span class="swatch-hex mono">#7C63F7</span>
+            <span class="swatch-role">Gradient Start / Accent</span>
+          </div>
+        </div>
+
+        <!-- 2. Primary Strong -->
+        <div class="swatch-item">
+          <div class="swatch-color" style="background: #6d28d9;"></div>
+          <div class="swatch-details">
+            <span class="swatch-title">Primary Strong</span>
+            <span class="swatch-hex mono">#6D28D9</span>
+            <span class="swatch-role">Primary Action / Buttons</span>
+          </div>
+        </div>
+
+        <!-- 3. Brand Secondary -->
+        <div class="swatch-item">
+          <div class="swatch-color" style="background: #2563eb;"></div>
+          <div class="swatch-details">
+            <span class="swatch-title">Brand Secondary</span>
+            <span class="swatch-hex mono">#2563EB</span>
+            <span class="swatch-role">Gradient End / Links</span>
+          </div>
+        </div>
+
+        <!-- 4. Brand Accent -->
+        <div class="swatch-item">
+          <div class="swatch-color" style="background: #a855f7;"></div>
+          <div class="swatch-details">
+            <span class="swatch-title">Brand Accent</span>
+            <span class="swatch-hex mono">#A855F7</span>
+            <span class="swatch-role">Highlights &amp; Sparkles</span>
+          </div>
+        </div>
+
+        <!-- 5. Brand Dark -->
+        <div class="swatch-item">
+          <div class="swatch-color" style="background: #0b0e14;"></div>
+          <div class="swatch-details">
+            <span class="swatch-title">Brand Dark</span>
+            <span class="swatch-hex mono">#0B0E14</span>
+            <span class="swatch-role">Dark Theme Canvas</span>
+          </div>
+        </div>
+
+        <!-- 6. Foreground Dark -->
+        <div class="swatch-item">
+          <div class="swatch-color" style="background: #1e2536;"></div>
+          <div class="swatch-details">
+            <span class="swatch-title">Foreground Navy</span>
+            <span class="swatch-hex mono">#1E2536</span>
+            <span class="swatch-role">Primary Text / Headlines</span>
+          </div>
+        </div>
+
+        <!-- 7. Muted Text -->
+        <div class="swatch-item">
+          <div class="swatch-color" style="background: #616c82;"></div>
+          <div class="swatch-details">
+            <span class="swatch-title">Muted Slate</span>
+            <span class="swatch-hex mono">#616C82</span>
+            <span class="swatch-role">Captions &amp; Secondary</span>
+          </div>
+        </div>
+
+        <!-- 8. Subtle Border -->
+        <div class="swatch-item">
+          <div class="swatch-color" style="background: #e4e7ef;"></div>
+          <div class="swatch-details">
+            <span class="swatch-title">Surface Border</span>
+            <span class="swatch-hex mono">#E4E7EF</span>
+            <span class="swatch-role">Card Outlines &amp; Rules</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gradient Showcase -->
+    <div class="card">
+      <div class="cap">
+        <span class="num">08</span>
+        <span>Primary Brand Gradient</span>
+        <span class="rule2"></span>
+      </div>
+      <div class="gradient-showcase">
+        <div class="grad-bar">
+          <span>#7C63F7 (0%)</span>
+          <span style="font-weight: 800; font-size: 14px; letter-spacing: 1px;">ZELVOA IDENTITY GRADIENT</span>
+          <span>#2563EB (100%)</span>
+        </div>
+
+        <div class="grad-specs">
+          <div class="spec-box">
+            <span class="label">Direction / Angle</span>
+            <span class="val">135&deg; Diagonal (x1:0, y1:0 &rarr; x2:32, y2:32)</span>
+          </div>
+          <div class="spec-box">
+            <span class="label">Color Stops</span>
+            <span class="val">Violet (#7C63F7) &rarr; Electric Blue (#2563EB)</span>
+          </div>
+        </div>
+
+        <div class="css-snippet mono">
+          <span>linear-gradient(135deg, #7c63f7 0%, #2563eb 100%)</span>
+          <span style="color: #927cfb; font-weight: 700;">CSS SPEC</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 5. TYPOGRAPHY SYSTEM                       -->
+  <!-- ========================================== -->
+  <div class="typo-section">
+    <!-- Font Families -->
+    <div class="card font-family-card">
+      <div class="cap">
+        <span class="num">09</span>
+        <span>Typography System &amp; Hierarchy</span>
+        <span class="rule2"></span>
+      </div>
+      
+      <div class="font-hero">
+        <div>
+          <div class="font-hero-name">Inter &amp; Segoe UI</div>
+          <div style="font-size: 11px; color: var(--brand-muted); margin-top: 2px;">Arabic fallback: Tajawal / Noto Sans Arabic</div>
+        </div>
+        <span class="font-hero-badge">Primary Sans-Serif</span>
+      </div>
+
+      <div class="alphabet-stream mono">
+        ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>
+        abcdefghijklmnopqrstuvwxyz • 0123456789<br>
+        <span style="font-family: 'Tajawal', sans-serif; font-size: 13.5px; letter-spacing: 0.5px;">أ ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن هـ و ي</span>
+      </div>
+
+      <div class="weights-row">
+        <span class="weight-chip" style="font-weight: 400;">Regular 400</span>
+        <span class="weight-chip" style="font-weight: 500;">Medium 500</span>
+        <span class="weight-chip" style="font-weight: 600;">SemiBold 600</span>
+        <span class="weight-chip" style="font-weight: 700;">Bold 700</span>
+        <span class="weight-chip" style="font-weight: 800;">ExtraBold 800</span>
+      </div>
+    </div>
+
+    <!-- Type Scales -->
+    <div class="card">
+      <div class="cap">
+        <span class="num">10</span>
+        <span>Type Scale Applications</span>
+        <span class="rule2"></span>
+      </div>
+      <div class="type-scale-list">
+        <div class="scale-row">
+          <span class="scale-meta mono">Display (36px / 800)</span>
+          <span class="scale-sample" style="font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1;">
+            Create. Schedule. Grow.
+          </span>
+        </div>
+        <div class="scale-row">
+          <span class="scale-meta mono">Heading 1 (20px / 700)</span>
+          <span class="scale-sample" style="font-size: 17px; font-weight: 700; color: #1e2536;">
+            All Your Social Channels In One Unified Workspace
+          </span>
+        </div>
+        <div class="scale-row">
+          <span class="scale-meta mono">Body Text (14px / 400)</span>
+          <span class="scale-sample" style="font-size: 12.5px; font-weight: 400; color: #4a5568; line-height: 1.45;">
+            Manage, schedule, analyze, and publish effortlessly across modern networks without tab switching.
+          </span>
+        </div>
+        <div class="scale-row">
+          <span class="scale-meta mono">Micro Label (11px / 700)</span>
+          <span class="scale-sample" style="font-size: 10.5px; font-weight: 700; color: var(--brand-primary-strong); letter-spacing: 1.6px; text-transform: uppercase;">
+            SCHEDULED POST &bull; QUEUED FOR MULTI-CHANNEL DISTRIBUTION
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 6. UI & VISUAL STYLE IN THE PROJECT        -->
+  <!-- ========================================== -->
+  <div class="ui-section">
+    <!-- UI Previews -->
+    <div class="card">
+      <div class="cap">
+        <span class="num">11</span>
+        <span>SaaS Interface Style (Live Component Patterns)</span>
+        <span class="rule2"></span>
+      </div>
+      <div class="ui-mockup-wrapper">
+        <!-- SaaS Header Bar Mockup -->
+        <div class="mock-header">
+          <div class="mock-logo">
+            <svg viewBox="0 0 32 32" width="24" height="24"><use href="#sym-mark-primary"/></svg>
+            <span class="wm" style="font-size: 15px; color: #1e2536;">ZELVOA</span>
+          </div>
+          <div class="mock-nav">
+            <span class="mock-nav-item active">Dashboard</span>
+            <span class="mock-nav-item">Calendar</span>
+            <span class="mock-nav-item">Campaigns</span>
+            <span class="mock-nav-item">Analytics</span>
+          </div>
+          <div class="mock-btn">
+            <span>+ Create Post</span>
+          </div>
+        </div>
+
+        <!-- SaaS Post Card Mockup -->
+        <div class="mock-post-card">
+          <div class="post-card-top">
+            <div class="platform-badges">
+              <span class="plat-badge plat-ig">Instagram</span>
+              <span class="plat-badge plat-in">LinkedIn</span>
+              <span class="plat-badge plat-x">X / Twitter</span>
+            </div>
+            <span class="status-badge">
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/></svg>
+              Scheduled
+            </span>
+          </div>
+
+          <div class="post-preview-text">
+            Launching our Q3 cross-platform campaign with real-time engagement analytics. Seamless scheduling with <strong>ZELVOA</strong>.
+          </div>
+
+          <div class="post-card-footer">
+            <span>Scheduled for: Tomorrow, 10:00 AM UTC</span>
+            <span style="font-weight: 600; color: var(--brand-primary-strong);">Auto-Publish On</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design Tokens & Surface Rules -->
+    <div class="card">
+      <div class="cap">
+        <span class="num">12</span>
+        <span>Design System Tokens</span>
+        <span class="rule2"></span>
+      </div>
+      <div class="style-tokens-col">
+        <div class="token-row">
+          <div class="token-info">
+            <div class="name">Card Surfaces &amp; Radius</div>
+            <div class="desc">Clean white surface with 12px/16px radius</div>
+          </div>
+          <span class="token-val mono">rounded-xl (12px)</span>
+        </div>
+
+        <div class="token-row">
+          <div class="token-info">
+            <div class="name">Elevation Shadows</div>
+            <div class="desc">Soft ambient diffuse shadows</div>
+          </div>
+          <span class="token-val mono">0 4px 12px -2px rgba(15,23,42,0.08)</span>
+        </div>
+
+        <div class="token-row">
+          <div class="token-info">
+            <div class="name">Border Rules</div>
+            <div class="desc">Subtle high-contrast borders</div>
+          </div>
+          <span class="token-val mono">1px solid #E4E7EF</span>
+        </div>
+
+        <div class="token-row">
+          <div class="token-info">
+            <div class="name">Active Focus Ring</div>
+            <div class="desc">Accessibility compliant focus state</div>
+          </div>
+          <span class="token-val mono">2px solid #6D28D9</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 7. BRAND LOGO USAGE & INTEGRITY RULES      -->
+  <!-- ========================================== -->
+  <div class="rules-section">
+    <div class="card rule-card">
+      <div class="rule-header">
+        <span class="rule-badge-ok">DO</span>
+        <span>Clear Space</span>
+      </div>
+      <p class="rule-text">Maintain minimum clear space equal to 1X (mark height / 4) around the logo mark and full lockup at all times.</p>
+      <div class="rule-demo">
+        <span style="font-size: 11px; font-weight: 700; color: var(--brand-primary); letter-spacing: 1px;">CLEAR ZONE &ge; 1X</span>
+      </div>
+    </div>
+
+    <div class="card rule-card">
+      <div class="rule-header">
+        <span class="rule-badge-ok">DO</span>
+        <span>Minimum Sizes</span>
+      </div>
+      <p class="rule-text">Favicon: 16px minimum. Stand-alone mark: 24px minimum. Full primary logo lockup: 32px minimum height.</p>
+      <div class="rule-demo">
+        <span style="font-size: 10.5px; font-weight: 700; color: var(--brand-foreground);">Favicon 16px &bull; Mark 24px &bull; Lockup 32px</span>
+      </div>
+    </div>
+
+    <div class="card rule-card">
+      <div class="rule-header">
+        <span class="rule-badge-no">DON'T</span>
+        <span>Distort or Stretch</span>
+      </div>
+      <p class="rule-text">Never alter the 1:1 aspect ratio of the mark. Never squish, stretch, shear, or re-draw the geometric 'Z' ribbon.</p>
+      <div class="rule-demo">
+        <span style="font-size: 10.5px; font-weight: 700; color: #dc2626;">&cross; NO ASPECT DISTORTION</span>
+      </div>
+    </div>
+
+    <div class="card rule-card">
+      <div class="rule-header">
+        <span class="rule-badge-no">DON'T</span>
+        <span>Change Colors</span>
+      </div>
+      <p class="rule-text">Do not alter the gradient angle (135&deg;) or replace official colors (#7C63F7 &rarr; #2563EB) with unauthorized hues.</p>
+      <div class="rule-demo">
+        <span style="font-size: 10.5px; font-weight: 700; color: #dc2626;">&cross; NO UNAPPROVED GRADIENTS</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 8. FOOTER                                  -->
+  <!-- ========================================== -->
+  <footer class="sheet-footer">
+    <span class="legal">&copy; 2026 ZELVOA Inc. All Rights Reserved. Official Visual Identity &amp; Brand System Guidelines.</span>
+    <div class="tags">
+      <span>Next.js 16</span>
+      <span>•</span>
+      <span>Tailwind CSS v4</span>
+      <span>•</span>
+      <span>SVG Vector Geometry</span>
+      <span>•</span>
+      <span>WCAG AA Accessible</span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
