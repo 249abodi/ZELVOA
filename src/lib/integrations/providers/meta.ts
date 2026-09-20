@@ -1,5 +1,5 @@
 import { getProviderCredentials } from "@/lib/integrations/registry";
-import { OAuth2SocialProvider } from "@/lib/integrations/oauth-provider";
+import { OAuth2SocialProvider, OAUTH_ENDPOINTS } from "@/lib/integrations/oauth-provider";
 import type {
   ExchangedToken,
   ProviderAccountRecord,
@@ -11,6 +11,7 @@ import type {
 import { PublishingError } from "@/lib/publishing/errors";
 
 const GRAPH = "https://graph.facebook.com/v25.0";
+export const DEFAULT_FACEBOOK_CONFIG_ID = "1622667325887896";
 
 interface MetaErrorBody {
   error?: { message?: string; code?: number; error_subcode?: number; type?: string };
@@ -86,6 +87,66 @@ export class FacebookProvider extends OAuth2SocialProvider {
     super("FACEBOOK");
   }
 
+  override buildAuthorizationUrl(opts: {
+    state: string;
+    redirectUri: string;
+    scopes?: string[];
+  }): string {
+    const creds = this.getCredentials();
+    if (!creds) throw new Error("OAuth client credentials are not configured.");
+    const cfg = OAUTH_ENDPOINTS[this.platform];
+    const url = new URL(cfg.authorizationEndpoint);
+    const configId = process.env.FACEBOOK_CONFIG_ID?.trim() || DEFAULT_FACEBOOK_CONFIG_ID;
+
+    url.searchParams.set("client_id", creds.clientId);
+    url.searchParams.set("redirect_uri", opts.redirectUri);
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("state", opts.state);
+
+    if (configId) {
+      url.searchParams.set("config_id", configId);
+      url.searchParams.set("override_default_response_type", "true");
+    } else {
+      url.searchParams.set("scope", (opts.scopes ?? cfg.scopes).join(" "));
+      url.searchParams.set("prompt", "consent");
+    }
+
+    return url.toString();
+  }
+
+  override async exchangeCode(code: string, redirectUri: string): Promise<ExchangedToken> {
+    const exchanged = await super.exchangeCode(code, redirectUri);
+    const creds = this.getCredentials();
+    if (!creds) return exchanged;
+
+    try {
+      const long = (await metaGraph(
+        "oauth/access_token",
+        {
+          grant_type: "fb_exchange_token",
+          client_id: creds.clientId,
+          client_secret: creds.clientSecret,
+          fb_exchange_token: exchanged.accessToken,
+        },
+        true,
+        "PROVIDER_AUTH"
+      )) as { access_token?: string; expires_in?: number };
+
+      if (long?.access_token) {
+        return {
+          ...exchanged,
+          accessToken: long.access_token,
+          expiresInSeconds:
+            typeof long.expires_in === "number" ? long.expires_in : 60 * 60 * 24 * 60,
+        };
+      }
+    } catch {
+      // Fallback cleanly to the original exchanged token if long-lived exchange fails
+    }
+
+    return exchanged;
+  }
+
   override async getAccounts(exchanged: ExchangedToken): Promise<ProviderAccountRecord[]> {
     const pages = (await metaGraph(
       "me/accounts",
@@ -96,9 +157,35 @@ export class FacebookProvider extends OAuth2SocialProvider {
       },
       true,
       "PROVIDER_AUTH"
-    )) as { data?: Array<Record<string, unknown>> };
+    )) as { data?: Array<Record<string, unknown>>; paging?: { next?: string } };
 
-    const list = Array.isArray(pages?.data) ? pages.data : [];
+    const list: Array<Record<string, unknown>> = [];
+    if (Array.isArray(pages?.data)) {
+      list.push(...pages.data);
+    }
+
+    let nextUrl = pages?.paging?.next;
+    let pagesFetched = 1;
+    while (nextUrl && pagesFetched < 5) {
+      try {
+        const nextRes = await fetch(nextUrl);
+        if (!nextRes.ok) break;
+        const nextData = (await nextRes.json()) as {
+          data?: Array<Record<string, unknown>>;
+          paging?: { next?: string };
+        };
+        if (Array.isArray(nextData?.data) && nextData.data.length > 0) {
+          list.push(...nextData.data);
+          nextUrl = nextData.paging?.next;
+          pagesFetched++;
+        } else {
+          break;
+        }
+      } catch {
+        break;
+      }
+    }
+
     const records: ProviderAccountRecord[] = list.map((page) => {
       const pageId = String(page.id ?? "");
       const pageToken = String(page.access_token ?? "");

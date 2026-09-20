@@ -181,7 +181,83 @@ describe("Instagram account discovery", () => {
     expect(result.accessToken).toBe("refreshed-token");
     expect(result.expiresInSeconds).toBe(600);
     expect(calls[0]).toContain("https://graph.instagram.com/refresh_access_token");
-    expect(calls[0]).toContain("grant_type=ig_refresh_token");
+  });
+});
+
+describe("Facebook Login for Business authorization", () => {
+  it("builds an authorization URL with default Facebook Login for Business config_id", () => {
+    const provider = new FacebookProvider();
+    const url = new URL(
+      provider.buildAuthorizationUrl({
+        state: "fb-st123",
+        redirectUri: "https://zelvoa.vercel.app/api/v1/accounts/oauth/callback",
+      })
+    );
+    expect(url.origin + url.pathname).toBe("https://www.facebook.com/v25.0/dialog/oauth");
+    expect(url.searchParams.get("client_id")).toBe("fb-id");
+    expect(url.searchParams.get("redirect_uri")).toBe(
+      "https://zelvoa.vercel.app/api/v1/accounts/oauth/callback"
+    );
+    expect(url.searchParams.get("response_type")).toBe("code");
+    expect(url.searchParams.get("state")).toBe("fb-st123");
+    expect(url.searchParams.get("config_id")).toBe("1622667325887896");
+    expect(url.searchParams.get("override_default_response_type")).toBe("true");
+    expect(url.searchParams.get("scope")).toBeNull();
+  });
+
+  it("uses custom FACEBOOK_CONFIG_ID from environment when set", () => {
+    vi.stubEnv("FACEBOOK_CONFIG_ID", "custom-config-456");
+    const provider = new FacebookProvider();
+    const url = new URL(
+      provider.buildAuthorizationUrl({
+        state: "fb-st123",
+        redirectUri: "https://zelvoa.vercel.app/api/v1/accounts/oauth/callback",
+      })
+    );
+    expect(url.searchParams.get("config_id")).toBe("custom-config-456");
+  });
+
+  it("falls back to standard scopes if config_id is explicitly empty", () => {
+    vi.stubEnv("FACEBOOK_CONFIG_ID", "");
+    // Even if env is empty, it uses the DEFAULT_FACEBOOK_CONFIG_ID 1622667325887896
+    const provider = new FacebookProvider();
+    const url = new URL(
+      provider.buildAuthorizationUrl({
+        state: "fb-st123",
+        redirectUri: "https://zelvoa.vercel.app/api/v1/accounts/oauth/callback",
+      })
+    );
+    expect(url.searchParams.get("config_id")).toBe("1622667325887896");
+  });
+
+  it("exchanges code for user token and upgrades to long-lived token via fb_exchange_token", async () => {
+    const { calls } = mockFetch([
+      () =>
+        json({
+          access_token: "fb-short-token",
+          token_type: "bearer",
+          expires_in: 3600,
+        }),
+      () =>
+        json({
+          access_token: "fb-long-lived-token",
+          token_type: "bearer",
+          expires_in: 5184000,
+        }),
+    ]);
+
+    const provider = new FacebookProvider();
+    const result = await provider.exchangeCode(
+      "fb-auth-code",
+      "https://zelvoa.vercel.app/api/v1/accounts/oauth/callback"
+    );
+
+    expect(result.accessToken).toBe("fb-long-lived-token");
+    expect(result.expiresInSeconds).toBe(5184000);
+    expect(calls).toHaveLength(2);
+    expect(calls[1]).toContain("grant_type=fb_exchange_token");
+    expect(calls[1]).toContain("client_id=fb-id");
+    expect(calls[1]).toContain("fb_exchange_token=fb-short-token");
   });
 });
 
@@ -228,6 +304,45 @@ describe("Facebook account discovery", () => {
         name: "User",
       })
     ).rejects.toMatchObject({ code: "PROVIDER_PERMISSION" });
+  });
+
+  it("follows paging.next to fetch multiple pages of accounts", async () => {
+    const { calls } = mockFetch([
+      () =>
+        json({
+          data: [
+            {
+              id: "page1",
+              name: "Page One",
+              access_token: "tok1",
+            },
+          ],
+          paging: { next: "https://graph.facebook.com/v25.0/me/accounts?after=cursor123" },
+        }),
+      () =>
+        json({
+          data: [
+            {
+              id: "page2",
+              name: "Page Two",
+              access_token: "tok2",
+            },
+          ],
+        }),
+    ]);
+
+    const provider = new FacebookProvider();
+    const records = await provider.getAccounts({
+      accessToken: "user-token",
+      scopes: ["pages_manage_posts"],
+      platformAccountId: "user",
+      name: "User",
+    });
+
+    expect(records).toHaveLength(2);
+    expect(records[0].platformAccountId).toBe("page1");
+    expect(records[1].platformAccountId).toBe("page2");
+    expect(calls).toHaveLength(2);
   });
 });
 

@@ -13,7 +13,7 @@ import {
 } from "@/lib/integrations/types";
 import { PublishingError } from "@/lib/publishing/errors";
 
-interface OAuthEndpointConfig {
+export interface OAuthEndpointConfig {
   authorizationEndpoint: string;
   tokenEndpoint: string;
   revocationEndpoint?: string;
@@ -21,7 +21,7 @@ interface OAuthEndpointConfig {
   scopes: string[];
 }
 
-const OAUTH_ENDPOINTS: Record<Platform, OAuthEndpointConfig> = {
+export const OAUTH_ENDPOINTS: Record<Platform, OAuthEndpointConfig> = {
   INSTAGRAM: {
     authorizationEndpoint: "https://www.facebook.com/v25.0/dialog/oauth",
     tokenEndpoint: "https://graph.facebook.com/v25.0/oauth/access_token",
