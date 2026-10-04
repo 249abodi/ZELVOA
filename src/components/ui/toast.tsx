@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "@/components/icons";
 
@@ -45,12 +45,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [dismiss]
   );
 
-  const api: ToastContextValue = {
-    toast,
-    toastSuccess: (t, d) => toast("success", t, d),
-    toastError: (t, d) => toast("error", t, d),
-    toastInfo: (t, d) => toast("info", t, d),
-  };
+  const api = useMemo<ToastContextValue>(
+    () => ({
+      toast,
+      toastSuccess: (t, d) => toast("success", t, d),
+      toastError: (t, d) => toast("error", t, d),
+      toastInfo: (t, d) => toast("info", t, d),
+    }),
+    [toast]
+  );
 
   return (
     <ToastContext.Provider value={api}>

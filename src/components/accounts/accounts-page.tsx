@@ -36,6 +36,7 @@ export function AccountsPageClient({
   const [selected, setSelected] = useState<AccountSummary | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const requestKeyRef = useRef(0);
+  const handledNotifyKeyRef = useRef<string | null>(null);
 
   const loadAccounts = useCallback(async () => {
     const res = await fetch("/api/v1/accounts", { cache: "no-store" });
@@ -79,7 +80,13 @@ export function AccountsPageClient({
   }, [loadAccounts]);
 
   useEffect(() => {
-    if (!notify) return;
+    if (!notify) {
+      handledNotifyKeyRef.current = null;
+      return;
+    }
+    const notifyKey = `${notify.kind}:${notify.message ?? ""}`;
+    if (handledNotifyKeyRef.current === notifyKey) return;
+    handledNotifyKeyRef.current = notifyKey;
     if (notify.kind === "connected") {
       if (notify.message === "connected_dev") {
         toastInfo("Connected", "Development-mode account added.");
