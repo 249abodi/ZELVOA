@@ -4,6 +4,7 @@ import { GET } from "@/app/api/v1/auth/oauth/[provider]/route";
 const mocks = vi.hoisted(() => ({
   authOAuthStateCreate: vi.fn(async () => ({ id: "row-1" })),
   generateOAuthState: vi.fn(() => "state-abc"),
+  encryptSecret: vi.fn((value: string) => `encrypted:${value}`),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -16,6 +17,7 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/lib/crypto", () => ({
   generateOAuthState: mocks.generateOAuthState,
+  encryptSecret: mocks.encryptSecret,
 }));
 
 async function callGet(url: string) {
@@ -66,12 +68,15 @@ describe("GET /api/v1/auth/oauth/[provider]", () => {
     });
 
     const location = new URL(res.headers.get("location")!);
+    expect(location.origin + location.pathname).toBe("https://x.com/i/oauth2/authorize");
     expect(location.searchParams.get("code_challenge")).toBeTruthy();
     expect(location.searchParams.get("code_challenge_method")).toBe("S256");
+    expect(location.searchParams.get("scope")).toBe("users.read");
 
     const calls = mocks.authOAuthStateCreate.mock.calls as unknown as [[{ data: { codeVerifier?: string } }]];
     const createArg = calls[0][0].data;
-    expect(createArg.codeVerifier).toBeTruthy();
+    expect(createArg.codeVerifier).toMatch(/^encrypted:/);
+    expect(mocks.encryptSecret).toHaveBeenCalledOnce();
   });
 
   test("strips unsafe next values", async () => {

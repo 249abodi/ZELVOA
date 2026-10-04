@@ -4,6 +4,7 @@ import { GET } from "@/app/api/v1/auth/oauth/[provider]/callback/route";
 const mocks = vi.hoisted(() => ({
   signSession: vi.fn(async () => "mock-token"),
   hashPassword: vi.fn((p: string) => `hash:${p}`),
+  decryptSecret: vi.fn((value: string) => value.replace(/^encrypted:/, "")),
   exchangeCode: vi.fn(async () => "at-1"),
   fetchProfile: vi.fn(),
   sanitizeNext: vi.fn((next: string | null) => next),
@@ -47,7 +48,10 @@ vi.mock("@/lib/social-auth", () => ({
 }));
 vi.mock("@/lib/session", () => ({ signSession: mocks.signSession }));
 vi.mock("@/lib/db", () => ({ prisma: mocks.prisma }));
-vi.mock("@/lib/crypto", () => ({ hashPassword: mocks.hashPassword }));
+vi.mock("@/lib/crypto", () => ({
+  hashPassword: mocks.hashPassword,
+  decryptSecret: mocks.decryptSecret,
+}));
 
 function validState(): {
   id: string;
@@ -149,6 +153,50 @@ describe("GET /api/v1/auth/oauth/[provider]/callback", () => {
       role: "OWNER",
     });
     expect(mocks.prisma.auditLog.create).toHaveBeenCalled();
+  });
+
+  test("decrypts X PKCE verifier and clears encrypted verifier on state consumption", async () => {
+    const xProfile = {
+      provider: "X",
+      providerAccountId: "x-1",
+      email: null,
+      name: "X user",
+      avatarUrl: null,
+      emailVerified: false,
+    };
+    mocks.prisma.authOAuthState.findUnique.mockResolvedValue({
+      ...validState(),
+      provider: "X",
+      redirectUri: "https://col.app/api/v1/auth/oauth/x/callback",
+      codeVerifier: "encrypted:verifier-x",
+    });
+    mocks.fetchProfile.mockResolvedValue(xProfile);
+    mocks.prisma.authProviderAccount.findUnique.mockResolvedValue({
+      id: "pa-x",
+      provider: "X",
+      providerAccountId: "x-1",
+      user: {
+        id: "user-x",
+        email: "x.x-1@social.local",
+        name: "X user",
+        avatarUrl: null,
+        deletedAt: null,
+      },
+    });
+
+    await GET(new Request("https://col.app/cb?state=state-abc&code=code-x"), {
+      params: Promise.resolve({ provider: "x" }),
+    });
+
+    expect(mocks.decryptSecret).toHaveBeenCalledWith("encrypted:verifier-x");
+    expect(mocks.exchangeCode).toHaveBeenCalledWith(expect.objectContaining({
+      provider: "X",
+      codeVerifier: "verifier-x",
+    }));
+    expect(mocks.prisma.authOAuthState.updateMany).toHaveBeenCalledWith({
+      where: { id: "st-1", consumedAt: null },
+      data: { consumedAt: expect.any(Date), codeVerifier: null },
+    });
   });
 
   test("auto-links a verified email to an existing user", async () => {

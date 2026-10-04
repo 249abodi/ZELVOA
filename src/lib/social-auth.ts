@@ -68,9 +68,9 @@ const PROVIDER_CONFIG: Record<LoginProvider, LoginProviderConfig> = {
     usesPKCE: false,
   },
   X: {
-    authorizationEndpoint: "https://twitter.com/i/oauth2/authorize",
-    tokenEndpoint: "https://api.twitter.com/2/oauth2/token",
-    scopes: ["tweet.read", "users.read", "email"],
+    authorizationEndpoint: "https://x.com/i/oauth2/authorize",
+    tokenEndpoint: "https://api.x.com/2/oauth2/token",
+    scopes: ["users.read"],
     usesPKCE: true,
     tokenAuthHeader: true,
   },
@@ -127,7 +127,10 @@ export function buildAuthorizationUrl(opts: {
   url.searchParams.set("response_type", "code");
   url.searchParams.set("state", opts.state);
   url.searchParams.set("scope", cfg.scopes.join(" "));
-  url.searchParams.set("prompt", "select_account");
+  if (opts.provider !== "X") url.searchParams.set("prompt", "select_account");
+  if (cfg.usesPKCE && !opts.codeChallenge) {
+    throw new Error("X OAuth requires a PKCE code challenge.");
+  }
   if (cfg.usesPKCE && opts.codeChallenge) {
     url.searchParams.set("code_challenge", opts.codeChallenge);
     url.searchParams.set("code_challenge_method", "S256");
@@ -153,13 +156,19 @@ export async function exchangeCode(opts: {
   if (!creds) throw new Error("Provider is not configured.");
   const cfg = PROVIDER_CONFIG[opts.provider];
 
+  if (cfg.usesPKCE && !opts.codeVerifier) {
+    throw new Error("X OAuth requires a PKCE code verifier.");
+  }
+
   const params = new URLSearchParams({
-    client_id: creds.clientId,
-    client_secret: creds.clientSecret,
     code: opts.code,
     grant_type: "authorization_code",
     redirect_uri: opts.redirectUri,
   });
+  if (!cfg.tokenAuthHeader) {
+    params.set("client_id", creds.clientId);
+    params.set("client_secret", creds.clientSecret);
+  }
   if (cfg.usesPKCE && opts.codeVerifier) {
     params.set("code_verifier", opts.codeVerifier);
   }
@@ -296,8 +305,8 @@ async function fetchTiktokProfile(accessToken: string): Promise<SocialProfile> {
 }
 
 async function fetchXProfile(accessToken: string): Promise<SocialProfile> {
-  const url = new URL("https://api.twitter.com/2/users/me");
-  url.searchParams.set("user.fields", "id,name,username,profile_image_url,email");
+  const url = new URL("https://api.x.com/2/users/me");
+  url.searchParams.set("user.fields", "id,name,username,profile_image_url");
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -313,14 +322,13 @@ async function fetchXProfile(accessToken: string): Promise<SocialProfile> {
   const data = body.data ?? {};
   const id = String(data.id ?? "");
   if (!id) throw new Error("X did not return a stable user id.");
-  const email = typeof data.email === "string" && data.email ? data.email : null;
   return {
     provider: "X",
     providerAccountId: id,
-    email: email?.toLowerCase() ?? null,
+    email: null,
     name: String(data.name ?? data.username ?? "X user"),
     avatarUrl: typeof data.profile_image_url === "string" ? data.profile_image_url : null,
-    emailVerified: Boolean(email),
+    emailVerified: false,
   };
 }
 

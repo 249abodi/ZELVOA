@@ -73,7 +73,7 @@ describe("buildAuthorizationUrl", () => {
     expect(parsed.searchParams.get("code_challenge")).toBeNull();
   });
 
-  test("adds PKCE parameters for X", () => {
+  test("uses the current X authorize endpoint and only the login scope with PKCE", () => {
     vi.stubEnv("X_CLIENT_ID", "xid");
     vi.stubEnv("X_CLIENT_SECRET", "xs");
     const verifier = "verifier-abc";
@@ -84,10 +84,23 @@ describe("buildAuthorizationUrl", () => {
       codeChallenge: generateCodeChallenge(verifier),
     });
     const parsed = new URL(url);
+    expect(parsed.origin + parsed.pathname).toBe("https://x.com/i/oauth2/authorize");
+    expect(parsed.searchParams.get("scope")).toBe("users.read");
+    expect(parsed.searchParams.get("prompt")).toBeNull();
     expect(parsed.searchParams.get("code_challenge")).toBe(
       generateCodeChallenge(verifier)
     );
     expect(parsed.searchParams.get("code_challenge_method")).toBe("S256");
+  });
+
+  test("requires a PKCE challenge for X", () => {
+    vi.stubEnv("X_CLIENT_ID", "xid");
+    vi.stubEnv("X_CLIENT_SECRET", "xs");
+    expect(() => buildAuthorizationUrl({
+      provider: "X",
+      state: "s",
+      redirectUri: "https://x.app/cb",
+    })).toThrow(/PKCE/);
   });
 
   test("throws when the provider is not configured", () => {
@@ -136,6 +149,40 @@ describe("exchangeCode", () => {
     await expect(
       exchangeCode({ provider: "FACEBOOK", code: "c", redirectUri: "u" })
     ).rejects.toThrow(/Token exchange failed/);
+  });
+
+  test("exchanges X code with Basic auth, PKCE, and no duplicate credentials", async () => {
+    vi.stubEnv("X_CLIENT_ID", "xid");
+    vi.stubEnv("X_CLIENT_SECRET", "xsecret");
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ access_token: "tok-x" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await exchangeCode({
+      provider: "X",
+      code: "code-x",
+      redirectUri: "https://x.app/cb",
+      codeVerifier: "verifier-x",
+    });
+
+    const [endpoint, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = init.body as URLSearchParams;
+    expect(endpoint).toBe("https://api.x.com/2/oauth2/token");
+    expect((init.headers as Record<string, string>).Authorization).toBe(
+      `Basic ${Buffer.from("xid:xsecret").toString("base64")}`
+    );
+    expect(body.get("code_verifier")).toBe("verifier-x");
+    expect(body.get("client_id")).toBeNull();
+    expect(body.get("client_secret")).toBeNull();
+  });
+
+  test("requires a PKCE verifier for X", async () => {
+    vi.stubEnv("X_CLIENT_ID", "xid");
+    vi.stubEnv("X_CLIENT_SECRET", "xsecret");
+    await expect(exchangeCode({
+      provider: "X",
+      code: "code-x",
+      redirectUri: "https://x.app/cb",
+    })).rejects.toThrow(/PKCE/);
   });
 
   test("throws when no access token is returned", async () => {
@@ -227,15 +274,21 @@ describe("fetchProfile", () => {
     expect(p.email).toBeNull();
   });
 
-  test("X: returns email only when the user granted the email scope", async () => {
+  test("X: requests only supported profile fields and does not depend on email", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({ data: { id: "x-1", name: "Xer", username: "xer", email: "not-requested@example.com" } })
+    );
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        jsonResponse({ data: { id: "x-1", name: "Xer", username: "xer", profile_image_url: "https://p/x.png" } })
-      )
+      fetchMock
     );
     const p = await fetchProfile("X", "tok");
+    expect(fetchMock.mock.calls[0][0]).toBeInstanceOf(URL);
+    const profileUrl = fetchMock.mock.calls[0][0] as URL;
+    expect(profileUrl.origin + profileUrl.pathname).toBe("https://api.x.com/2/users/me");
+    expect(profileUrl.searchParams.get("user.fields")).toBe("id,name,username,profile_image_url");
     expect(p.email).toBeNull();
+    expect(p.emailVerified).toBe(false);
     expect(p.providerAccountId).toBe("x-1");
   });
 });

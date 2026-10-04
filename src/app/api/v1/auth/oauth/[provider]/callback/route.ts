@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db";
-import { hashPassword } from "@/lib/crypto";
+import { decryptSecret, hashPassword } from "@/lib/crypto";
 import { signSession } from "@/lib/session";
 import { SESSION_COOKIE } from "@/lib/auth";
 import {
@@ -65,7 +65,7 @@ export async function GET(
 
   const consumed = await prisma.authOAuthState.updateMany({
     where: { id: stateRow.id, consumedAt: null },
-    data: { consumedAt: new Date() },
+    data: { consumedAt: new Date(), codeVerifier: null },
   });
   if (consumed.count === 0) return redirectTo(origin, "/login", "state_used");
 
@@ -75,7 +75,10 @@ export async function GET(
       provider,
       code,
       redirectUri: stateRow.redirectUri,
-      codeVerifier: stateRow.codeVerifier,
+      codeVerifier:
+        provider === "X" && stateRow.codeVerifier
+          ? decryptSecret(stateRow.codeVerifier)
+          : stateRow.codeVerifier,
     });
     profile = await fetchProfile(provider, accessToken);
   } catch {

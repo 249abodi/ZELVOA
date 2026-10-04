@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { generateOAuthState } from "@/lib/crypto";
+import { encryptSecret, generateOAuthState } from "@/lib/crypto";
 import {
   buildAuthorizationUrl,
   generateCodeChallenge,
@@ -43,7 +43,7 @@ export async function GET(
       provider,
       state,
       redirectUri,
-      ...(codeVerifier ? { codeVerifier } : {}),
+      ...(codeVerifier ? { codeVerifier: encryptSecret(codeVerifier) } : {}),
       ...(next ? { next } : {}),
       expiresAt: new Date(Date.now() + STATE_TTL_MS),
     },
