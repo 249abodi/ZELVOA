@@ -45,7 +45,7 @@ export function AccountDetailModal({
   useEffect(() => {
     if (!open || !account) return;
     let cancelled = false;
-    fetch(`/api/v1/accounts/${account.id}`)
+    fetch(`/api/v1/accounts/${account.id}`, { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("load_failed"))))
       .then((data: { data: AccountSummary & { canRefresh?: boolean; tokenScopes?: string[] } }) => {
         if (!cancelled) setDetail(data.data);

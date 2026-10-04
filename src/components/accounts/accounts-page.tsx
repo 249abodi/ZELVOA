@@ -38,7 +38,7 @@ export function AccountsPageClient({
   const requestKeyRef = useRef(0);
 
   const loadAccounts = useCallback(async () => {
-    const res = await fetch("/api/v1/accounts");
+    const res = await fetch("/api/v1/accounts", { cache: "no-store" });
     if (!res.ok) throw new Error("failed");
     const data = (await res.json()) as { data: AccountSummary[] };
     return data.data;
@@ -49,10 +49,12 @@ export function AccountsPageClient({
     setError(false);
     try {
       const data = await loadAccounts();
-      if (requestKeyRef.current !== key) return;
+      if (requestKeyRef.current !== key) return null;
       setAccounts(data);
+      return data;
     } catch {
       setError(true);
+      return null;
     }
   }, [loadAccounts]);
 
@@ -191,7 +193,12 @@ export function AccountsPageClient({
         account={selected}
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
-        onChange={() => refetch()}
+        onChange={async () => {
+          const updatedAccounts = await refetch();
+          if (!selected) return;
+          const updatedAccount = updatedAccounts?.find((item) => item.id === selected.id);
+          if (updatedAccount) setSelected(updatedAccount);
+        }}
       />
     </div>
   );
