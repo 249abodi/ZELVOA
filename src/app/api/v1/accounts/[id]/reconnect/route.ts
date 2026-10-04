@@ -5,7 +5,7 @@ import { handleApiError, fail, unauthorized, forbidden, notFound, ok, parseJson 
 import { reconnectAccountSchema } from "@/lib/validators";
 import { getProvider } from "@/lib/integrations/factory";
 import { getRegistryEntry, getPlatformBaseUrl } from "@/lib/integrations/registry";
-import { generateOAuthState } from "@/lib/crypto";
+import { encryptSecret, generateOAuthCodeVerifier, generateOAuthState } from "@/lib/crypto";
 
 export async function POST(
   request: Request,
@@ -37,6 +37,7 @@ export async function POST(
     }
 
     const state = generateOAuthState();
+    const codeVerifier = account.platform === "X" ? generateOAuthCodeVerifier() : undefined;
     const redirectUri =
       body.redirectUri ??
       `${getPlatformBaseUrl(new URL(request.url).origin)}/api/v1/accounts/oauth/callback`;
@@ -48,6 +49,7 @@ export async function POST(
         platform: account.platform,
         state,
         redirectUri,
+        encryptedCodeVerifier: codeVerifier ? encryptSecret(codeVerifier) : null,
         connectsTo: id,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
         ipAddress: request.headers.get("x-forwarded-for") ?? null,
@@ -55,7 +57,7 @@ export async function POST(
     });
 
     const provider = getProvider(account.platform);
-    const authorizationUrl = provider.buildAuthorizationUrl({ state, redirectUri });
+    const authorizationUrl = provider.buildAuthorizationUrl({ state, redirectUri, codeVerifier });
 
     return ok({
       status: "ready",

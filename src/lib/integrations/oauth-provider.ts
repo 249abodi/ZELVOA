@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { getPlatformMeta } from "@/lib/integrations/platforms";
 import { getProviderCredentials } from "@/lib/integrations/registry";
 import {
@@ -44,8 +45,8 @@ export const OAUTH_ENDPOINTS: Record<Platform, OAuthEndpointConfig> = {
     scopes: ["w_member_social", "r_liteprofile", "r_emailaddress"],
   },
   X: {
-    authorizationEndpoint: "https://twitter.com/i/oauth2/authorize",
-    tokenEndpoint: "https://api.twitter.com/2/oauth2/token",
+    authorizationEndpoint: "https://x.com/i/oauth2/authorize",
+    tokenEndpoint: "https://api.x.com/2/oauth2/token",
     scopes: ["tweet.read", "tweet.write", "users.read", "offline.access"],
   },
   YOUTUBE: {
@@ -77,6 +78,7 @@ export class OAuth2SocialProvider implements SocialProvider {
     state: string;
     redirectUri: string;
     scopes?: string[];
+    codeVerifier?: string;
   }): string {
     const creds = this.getCredentials();
     if (!creds) throw new Error("OAuth client credentials are not configured.");
@@ -88,24 +90,36 @@ export class OAuth2SocialProvider implements SocialProvider {
     url.searchParams.set("state", opts.state);
     url.searchParams.set("scope", (opts.scopes ?? cfg.scopes).join(" "));
     url.searchParams.set("prompt", "consent");
+    if (this.platform === "X") {
+      if (!opts.codeVerifier) throw new Error("X OAuth requires a PKCE code verifier.");
+      url.searchParams.set("code_challenge", createCodeChallenge(opts.codeVerifier));
+      url.searchParams.set("code_challenge_method", "S256");
+    }
     return url.toString();
   }
 
-  async exchangeCode(code: string, redirectUri: string): Promise<ExchangedToken> {
+  async exchangeCode(code: string, redirectUri: string, codeVerifier?: string): Promise<ExchangedToken> {
     const creds = this.getCredentials();
     if (!creds) throw new Error("OAuth client credentials are not configured.");
     const cfg = OAUTH_ENDPOINTS[this.platform];
 
+    if (this.platform === "X" && !codeVerifier) throw new Error("X OAuth PKCE verification failed.");
+    const body = new URLSearchParams({
+      code,
+      grant_type: "authorization_code",
+      redirect_uri: redirectUri,
+    });
+    if (this.platform === "X") body.set("code_verifier", codeVerifier!);
+    else {
+      body.set("client_id", creds.clientId);
+      body.set("client_secret", creds.clientSecret);
+    }
     const res = await fetch(cfg.tokenEndpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: creds.clientId,
-        client_secret: creds.clientSecret,
-        code,
-        grant_type: "authorization_code",
-        redirect_uri: redirectUri,
-      }),
+      headers: this.platform === "X"
+        ? { "Content-Type": "application/x-www-form-urlencoded", Authorization: `Basic ${Buffer.from(`${creds.clientId}:${creds.clientSecret}`).toString("base64")}` }
+        : { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
     });
     if (!res.ok) {
       throw new Error(`Token exchange failed (${res.status}).`);
@@ -153,15 +167,17 @@ export class OAuth2SocialProvider implements SocialProvider {
     const creds = this.getCredentials();
     if (!creds) throw new Error("OAuth client credentials are not configured.");
     const cfg = OAUTH_ENDPOINTS[this.platform];
+    const body = new URLSearchParams({ refresh_token: refreshToken, grant_type: "refresh_token" });
+    if (this.platform !== "X") {
+      body.set("client_id", creds.clientId);
+      body.set("client_secret", creds.clientSecret);
+    }
     const res = await fetch(cfg.tokenEndpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: creds.clientId,
-        client_secret: creds.clientSecret,
-        refresh_token: refreshToken,
-        grant_type: "refresh_token",
-      }),
+      headers: this.platform === "X"
+        ? { "Content-Type": "application/x-www-form-urlencoded", Authorization: `Basic ${Buffer.from(`${creds.clientId}:${creds.clientSecret}`).toString("base64")}` }
+        : { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
     });
     if (!res.ok) throw new Error(`Token refresh failed (${res.status}).`);
     const data = (await res.json()) as Record<string, unknown>;
@@ -174,8 +190,24 @@ export class OAuth2SocialProvider implements SocialProvider {
     };
   }
 
-  async revoke(_accessToken: string): Promise<void> {
+  async revoke(_accessToken: string, refreshToken?: string): Promise<void> {
     const cfg = OAUTH_ENDPOINTS[this.platform];
+    if (this.platform === "X") {
+      const creds = this.getCredentials();
+      if (!creds) return;
+      for (const [token, hint] of [[_accessToken, "access_token"], [refreshToken, "refresh_token"]] as const) {
+        if (!token) continue;
+        await fetch("https://api.x.com/2/oauth2/revoke", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: `Basic ${Buffer.from(`${creds.clientId}:${creds.clientSecret}`).toString("base64")}`,
+          },
+          body: new URLSearchParams({ token, token_type_hint: hint }),
+        }).catch(() => undefined);
+      }
+      return;
+    }
     if (!cfg.revocationEndpoint) return;
     const creds = this.getCredentials();
     if (!creds) return;
@@ -217,6 +249,10 @@ export class OAuth2SocialProvider implements SocialProvider {
 
 export function providerFor(platform: Platform): SocialProvider {
   return new OAuth2SocialProvider(platform);
+}
+
+function createCodeChallenge(verifier: string): string {
+  return createHash("sha256").update(verifier).digest("base64url");
 }
 
 export function emptyProviderRecord(platform: Platform): Omit<ProviderAccountRecord, "token" | "status"> {

@@ -49,6 +49,10 @@ export function generateOAuthState(): string {
   return randomBytes(24).toString("base64url");
 }
 
+export function generateOAuthCodeVerifier(): string {
+  return randomBytes(32).toString("base64url");
+}
+
 export function hashPassword(password: string): string {
   return bcrypt.hashSync(password, BCRYPT_ROUNDS);
 }

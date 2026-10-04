@@ -4,9 +4,9 @@ import { getCurrentContext } from "@/lib/auth";
 import { callbackQuerySchema } from "@/lib/validators";
 import { getProvider } from "@/lib/integrations/factory";
 import { getPlatformBaseUrl } from "@/lib/integrations/registry";
-import { encryptSecret } from "@/lib/crypto";
+import { decryptSecret, encryptSecret } from "@/lib/crypto";
 import { markDev, isDevMarkerScope } from "@/lib/integrations/dev-provider";
-import { redactError } from "@/lib/integrations/redact";
+import { redactError, redactText } from "@/lib/integrations/redact";
 import { writeAudit } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications/service";
 import { assessOAuthState, buildAccountsRedirect, oauthCallbackCode } from "@/lib/integrations/oauth";
@@ -28,14 +28,8 @@ export async function GET(request: Request) {
     code: searchParams.get("code") ?? undefined,
     error: searchParams.get("error") ?? undefined,
     error_description: searchParams.get("error_description") ?? undefined,
+    error_uri: searchParams.get("error_uri") ?? undefined,
   };
-  console.info("[oauth-callback] received", {
-    callbackPath: "/api/v1/accounts/oauth/callback",
-    statePresent: raw.state.length > 0,
-    stateLength: raw.state.length,
-    codePresent: Boolean(raw.code),
-    providerError: raw.error ?? null,
-  });
   if (!raw.state) return redirectToApp("missing_oauth_state");
 
   const parsed = callbackQuerySchema.safeParse(raw);
@@ -52,31 +46,18 @@ export async function GET(request: Request) {
     const assessed = assessOAuthState(record, new Date());
 
     if (!record || assessed.missing) {
-      console.info("[oauth-callback] state lookup", {
-        statePresent: true,
-        stateLength: body.state.length,
-        recordExists: Boolean(record),
-      });
       return redirectToApp(assessed.error ?? "invalid_oauth_state");
     }
 
-    const platform = record.platform;
-    console.info("[oauth-callback] state record", {
-      statePresent: true,
-      stateLength: body.state.length,
-      recordExists: true,
-      platform,
-      usedBefore: Boolean(record.consumedAt),
-      expired: Boolean(assessed.error === "oauth_state_expired"),
-      workspaceScoped: Boolean(record.workspaceId),
-    });
-
     if (body.error) {
-      await prisma.oAuthState.delete({ where: { id: record.id } });
-      console.info("[oauth-callback] provider denied the request", {
-        platform,
-        code: body.error,
+      const errorUri = body.error_uri ? new URL(body.error_uri) : null;
+      console.warn("[oauth-callback] provider authorization error", {
+        platform: record.platform,
+        error: sanitizeProviderDiagnostic(body.error),
+        errorDescription: sanitizeProviderDiagnostic(body.error_description),
+        errorUri: errorUri ? sanitizeProviderDiagnostic(`${errorUri.origin}${errorUri.pathname}`) : null,
       });
+      await prisma.oAuthState.delete({ where: { id: record.id } });
       return redirectToApp(
         body.error === "access_denied" ? "oauth_access_denied" : "oauth_denied"
       );
@@ -108,7 +89,8 @@ export async function GET(request: Request) {
     const provider = getProvider(record.platform);
     const exchanged = await provider.exchangeCode(
       body.code ?? "",
-      record.redirectUri
+      record.redirectUri,
+      record.encryptedCodeVerifier ? decryptSecret(record.encryptedCodeVerifier) : undefined
     );
 
     const discoveries =
@@ -161,7 +143,7 @@ export async function GET(request: Request) {
         pendingId = pending.id;
         await tx.oAuthState.update({
           where: { id: record.id },
-          data: { consumedAt: now },
+          data: { consumedAt: now, encryptedCodeVerifier: null },
         });
       });
 
@@ -238,7 +220,7 @@ export async function GET(request: Request) {
 
       await tx.oAuthState.update({
         where: { id: record.id },
-        data: { consumedAt: now },
+        data: { consumedAt: now, encryptedCodeVerifier: null },
       });
 
       return created;
@@ -272,7 +254,7 @@ export async function GET(request: Request) {
     await prisma.oAuthState
       .updateMany({
         where: { state: body.state, consumedAt: null },
-        data: { consumedAt: new Date() },
+        data: { consumedAt: new Date(), encryptedCodeVerifier: null },
       })
       .catch(() => undefined);
     console.error("[oauth-callback]", redactError(detail));
@@ -293,4 +275,9 @@ export async function GET(request: Request) {
     }
     return redirectToApp(oauthCallbackCode(error));
   }
+}
+
+function sanitizeProviderDiagnostic(value: string | undefined): string | null {
+  if (!value) return null;
+  return redactText(value).slice(0, 500);
 }

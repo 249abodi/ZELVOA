@@ -100,7 +100,7 @@ export const PLATFORM_META: Record<Platform, PlatformMeta> = {
     label: "X",
     icon: "xtwitter",
     capabilities: { publish: true, schedule: true, messaging: false, analytics: true },
-    authUrlBuilder: "oauth2",
+    authUrlBuilder: "oauth2-pkce-global",
     envClientId: "X_CLIENT_ID",
     envClientSecret: "X_CLIENT_SECRET",
     iconClass: "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-200",

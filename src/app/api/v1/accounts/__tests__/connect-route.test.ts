@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { POST } from "@/app/api/v1/accounts/connect/route";
+import { decryptSecret } from "@/lib/crypto";
+import { createHash } from "node:crypto";
 
 const { mockPrisma, mockGetCurrentContext, mockWriteAudit } = vi.hoisted(() => ({
   mockPrisma: {
@@ -21,11 +23,11 @@ const CONTEXT = {
   role: "OWNER",
 };
 
-function connectRequest(): Request {
+function connectRequest(platform = "FACEBOOK"): Request {
   return new Request("https://zelvoa.vercel.app/api/v1/accounts/connect", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ platform: "FACEBOOK" }),
+    body: JSON.stringify({ platform }),
   });
 }
 
@@ -35,6 +37,9 @@ beforeEach(() => {
   vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://zelvoa.vercel.app");
   vi.stubEnv("FACEBOOK_CLIENT_ID", "fb-id");
   vi.stubEnv("FACEBOOK_CLIENT_SECRET", "fb-secret");
+  vi.stubEnv("X_CLIENT_ID", "x-id");
+  vi.stubEnv("X_CLIENT_SECRET", "x-secret");
+  vi.stubEnv("ENCRYPTION_KEY", "a".repeat(64));
   mockGetCurrentContext.mockResolvedValue(CONTEXT);
   mockWriteAudit.mockResolvedValue(true);
   mockPrisma.oAuthState.create.mockImplementation(({ data }) => ({ id: "st_new", ...data }));
@@ -107,5 +112,35 @@ describe("connect route — OAuth state lifecycle", () => {
     expect(body.data).toMatchObject({ status: "not_configured", canConnect: false });
     expect(mockPrisma.oAuthState.create).not.toHaveBeenCalled();
     expect(mockWriteAudit).not.toHaveBeenCalled();
+  });
+
+  test("rejects unauthorized callers before creating OAuth state", async () => {
+    mockGetCurrentContext.mockResolvedValue(null);
+    const res = await POST(connectRequest("X"));
+    expect(res.status).toBe(401);
+    expect(mockPrisma.oAuthState.create).not.toHaveBeenCalled();
+  });
+
+  test("creates X PKCE authorization and encrypts the verifier in OAuth state", async () => {
+    const res = await POST(connectRequest("X"));
+    const raw = await res.text();
+    const body = JSON.parse(raw) as { data: { authorizationUrl: string } };
+    const url = new URL(body.data.authorizationUrl);
+    const stored = mockPrisma.oAuthState.create.mock.calls[0][0].data;
+    const verifier = decryptSecret(stored.encryptedCodeVerifier);
+    const challenge = createHash("sha256").update(verifier).digest("base64url");
+
+    expect(url.searchParams.get("code_challenge")).toBe(challenge);
+    expect(url.searchParams.get("code_challenge_method")).toBe("S256");
+    expect(url.searchParams.get("scope")).toContain("offline.access");
+    expect(stored.encryptedCodeVerifier).not.toContain(verifier);
+    expect(raw).not.toContain("x-secret");
+  });
+
+  test("X stays unavailable when either required credential is missing", async () => {
+    vi.stubEnv("X_CLIENT_SECRET", "");
+    const res = await POST(connectRequest("X"));
+    expect((await res.json()).data).toMatchObject({ status: "not_configured", canConnect: false });
+    expect(mockPrisma.oAuthState.create).not.toHaveBeenCalled();
   });
 });

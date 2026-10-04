@@ -15,6 +15,7 @@ function makeState(overrides: Partial<OAuthState> = {}): OAuthState {
     platform: "INSTAGRAM",
     state: "state-abc",
     redirectUri: "http://localhost:3000/api/v1/accounts/oauth/callback",
+    encryptedCodeVerifier: null,
     connectsTo: null,
     consumedAt: null,
     expiresAt: new Date("2026-01-01T00:00:00.000Z"),

@@ -65,10 +65,11 @@ export interface SocialProvider {
     state: string;
     redirectUri: string;
     scopes?: string[];
+    codeVerifier?: string;
   }): string;
-  exchangeCode(code: string, redirectUri: string): Promise<ExchangedToken>;
+  exchangeCode(code: string, redirectUri: string, codeVerifier?: string): Promise<ExchangedToken>;
   refresh(refreshToken: string): Promise<RefreshResult>;
-  revoke(accessToken: string): Promise<void>;
+  revoke(accessToken: string, refreshToken?: string): Promise<void>;
   getAccounts?(exchanged: ExchangedToken): Promise<ProviderAccountRecord[]>;
   publish?(input: PublishInput): Promise<PublishResult>;
   getPublishingStatus?(providerPostId: string): Promise<PublishingStatusResult>;

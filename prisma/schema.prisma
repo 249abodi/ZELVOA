@@ -384,6 +384,7 @@ model OAuthState {
   platform    PlatformType
   state       String   @unique
   redirectUri String
+  encryptedCodeVerifier String?
   connectsTo  String?
   consumedAt  DateTime?
   expiresAt   DateTime

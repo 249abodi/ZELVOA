@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { GET as callbackGet } from "@/app/api/v1/accounts/oauth/callback/route";
 import { PublishingError } from "@/lib/publishing/errors";
+import { encryptSecret } from "@/lib/crypto";
 
 const TEST_ENCRYPTION_KEY = "a".repeat(64);
 
@@ -199,7 +200,8 @@ describe("callback — state validation outcomes", () => {
     expect(location).not.toContain("connected=true");
     expect(mockProvider.exchangeCode).toHaveBeenCalledWith(
       "abc",
-      "https://zelvoa.vercel.app/api/v1/accounts/oauth/callback"
+      "https://zelvoa.vercel.app/api/v1/accounts/oauth/callback",
+      undefined
     );
   });
 });
@@ -243,7 +245,7 @@ describe("callback — facebook pending selection flow", () => {
 
     expect(mockPrisma.oAuthState.update).toHaveBeenCalledWith({
       where: { id: "st_1" },
-      data: { consumedAt: expect.any(Date) },
+      data: { consumedAt: expect.any(Date), encryptedCodeVerifier: null },
     });
     expect(mockPrisma.oAuthState.update).toHaveBeenCalledTimes(1);
   });
@@ -289,7 +291,7 @@ describe("callback — facebook pending selection flow", () => {
     expect(mockPrisma.oAuthState.update).not.toHaveBeenCalled();
     expect(mockPrisma.oAuthState.updateMany).toHaveBeenCalledWith({
       where: { state: "zzz", consumedAt: null },
-      data: { consumedAt: expect.any(Date) },
+      data: { consumedAt: expect.any(Date), encryptedCodeVerifier: null },
     });
     expect(mockPrisma.socialAccount.upsert).not.toHaveBeenCalled();
   });
@@ -326,6 +328,23 @@ describe("callback — provider errors map to safe codes", () => {
     expect(location).not.toContain("some_internal_detail");
   });
 
+  test("logs sanitized provider diagnostics without state or URI query values", async () => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const privateState = "S".repeat(43);
+    await callbackGet(
+      makeCallback(
+        `error=invalid_request&error_description=${encodeURIComponent(`client_secret=credential-value state=${privateState}`)}&error_uri=${encodeURIComponent(`https://api.x.com/errors/invalid?state=${privateState}`)}&state=zzz`
+      )
+    );
+    const logged = JSON.stringify(warning.mock.calls);
+    expect(logged).toContain("invalid_request");
+    expect(logged).toContain("api.x.com/errors/invalid");
+    expect(logged).not.toContain("credential-value");
+    expect(logged).not.toContain(privateState);
+    expect(logged).not.toContain("state=zzz");
+    warning.mockRestore();
+  });
+
   test("exchange failure → structured code and state is consumed", async () => {
     mockProvider.exchangeCode.mockRejectedValue(
       new PublishingError({
@@ -341,7 +360,7 @@ describe("callback — provider errors map to safe codes", () => {
     );
     expect(mockPrisma.oAuthState.updateMany).toHaveBeenCalledWith({
       where: { state: "zzz", consumedAt: null },
-      data: { consumedAt: expect.any(Date) },
+      data: { consumedAt: expect.any(Date), encryptedCodeVerifier: null },
     });
   });
 });
@@ -407,7 +426,7 @@ describe("callback — instagram keeps immediate connection", () => {
 
     expect(mockPrisma.oAuthState.update).toHaveBeenCalledWith({
       where: { id: "st_1" },
-      data: { consumedAt: expect.any(Date) },
+      data: { consumedAt: expect.any(Date), encryptedCodeVerifier: null },
     });
     expect(mockPrisma.oAuthState.update).toHaveBeenCalledTimes(1);
   });
@@ -419,5 +438,41 @@ describe("callback — instagram keeps immediate connection", () => {
     const res = await callbackGet(makeCallback("code=abc&state=zzz"));
     expect(res.headers.get("Location") ?? "").not.toContain("ig-token");
     expect(mockPrisma.pendingPageSelection.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("callback — X PKCE connection", () => {
+  beforeEach(() => {
+    mockPrisma.oAuthState.findUnique.mockResolvedValue(makeRecord({
+      platform: "X",
+      encryptedCodeVerifier: encryptSecret("pkce-verifier-test"),
+    }));
+  });
+
+  test("validates persisted PKCE verifier, connects authenticated X profile, and encrypts tokens", async () => {
+    mockProvider.exchangeCode.mockResolvedValue({ accessToken: "x-access-secret", refreshToken: "x-refresh-secret", scopes: ["users.read", "tweet.write"], platformAccountId: "x-user-1", name: "X User" });
+    mockProvider.getAccounts.mockResolvedValue([{
+      platform: "X",
+      platformAccountId: "x-user-1",
+      name: "X User",
+      username: "xuser",
+      avatarUrl: null,
+      scopes: ["users.read", "tweet.write"],
+      status: "CONNECTED",
+      token: { accessToken: "x-access-secret", refreshToken: "x-refresh-secret", expiresInSeconds: 7200 },
+      isDevProvider: false,
+    }]);
+
+    const response = await callbackGet(makeCallback("code=x-code&state=zzz"));
+    expect(new URL(response.headers.get("Location") ?? "").searchParams.get("connected")).toBe("true");
+    expect(mockProvider.exchangeCode).toHaveBeenCalledWith(
+      "x-code",
+      "https://zelvoa.vercel.app/api/v1/accounts/oauth/callback",
+      "pkce-verifier-test"
+    );
+    expect(mockPrisma.socialAccount.upsert.mock.calls[0][0].create).toMatchObject({ platform: "X", platformAccountId: "x-user-1", username: "xuser" });
+    const tokenData = mockPrisma.socialAccountToken.upsert.mock.calls[0][0].create;
+    expect(tokenData.encryptedAccessToken).not.toBe("x-access-secret");
+    expect(tokenData.encryptedRefreshToken).not.toBe("x-refresh-secret");
   });
 });

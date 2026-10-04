@@ -233,6 +233,7 @@ export const callbackQuerySchema = z
     code: z.string().optional(),
     error: z.string().optional(),
     error_description: z.string().optional(),
+    error_uri: z.string().url().optional(),
     devToken: z.string().optional(),
   })
   .superRefine((data, ctx) => {

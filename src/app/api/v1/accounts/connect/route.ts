@@ -5,7 +5,7 @@ import { handleApiError, fail, unauthorized, forbidden, ok, parseJson } from "@/
 import { connectAccountSchema } from "@/lib/validators";
 import { getProvider } from "@/lib/integrations/factory";
 import { getRegistryEntry, getPlatformBaseUrl } from "@/lib/integrations/registry";
-import { generateOAuthState } from "@/lib/crypto";
+import { encryptSecret, generateOAuthCodeVerifier, generateOAuthState } from "@/lib/crypto";
 import { writeAudit } from "@/lib/audit";
 
 export async function POST(request: Request) {
@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     }
 
     const state = generateOAuthState();
+    const codeVerifier = body.platform === "X" ? generateOAuthCodeVerifier() : undefined;
     const redirectUri =
       body.redirectUri ??
       `${getPlatformBaseUrl(new URL(request.url).origin)}/api/v1/accounts/oauth/callback`;
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
         platform: body.platform,
         state,
         redirectUri,
+        encryptedCodeVerifier: codeVerifier ? encryptSecret(codeVerifier) : null,
         connectsTo: body.connectsTo ?? null,
         expiresAt: new Date(Date.now() + ttlMinutes * 60 * 1000),
         ipAddress: request.headers.get("x-forwarded-for") ?? null,
@@ -54,7 +56,7 @@ export async function POST(request: Request) {
     const provider = getProvider(body.platform);
     let authorizationUrl: string;
     try {
-      authorizationUrl = provider.buildAuthorizationUrl({ state, redirectUri });
+      authorizationUrl = provider.buildAuthorizationUrl({ state, redirectUri, codeVerifier });
     } catch {
       await prisma.oAuthState.delete({ where: { state } });
       return fail("Provider could not generate an authorization URL.", 500);

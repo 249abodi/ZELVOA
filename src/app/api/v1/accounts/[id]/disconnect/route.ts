@@ -31,7 +31,10 @@ export async function POST(
       const provider = getProvider(account.platform);
       try {
         const token = decryptSecret(account.token.encryptedAccessToken);
-        await provider.revoke(token);
+        const refreshToken = account.token.encryptedRefreshToken
+          ? decryptSecret(account.token.encryptedRefreshToken)
+          : undefined;
+        await provider.revoke(token, refreshToken);
       } catch {
         // ignore revocation errors — local disconnect must still succeed
       }

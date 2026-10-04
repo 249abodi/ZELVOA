@@ -14,14 +14,14 @@ interface XErrorBody {
   detail?: string;
 }
 
-function xError(body: XErrorBody, retryable: boolean, stage: "PROVIDER_PUBLISH" | "PROVIDER_AUTH") {
+function xError(body: XErrorBody, retryable: boolean, stage: "PROVIDER_PUBLISH" | "PROVIDER_AUTH", status?: number) {
   const message = body?.detail ?? body?.errors?.[0]?.message ?? "X returned an error.";
   let code: "PROVIDER_RATE_LIMITED" | "PROVIDER_PERMISSION" | "PROVIDER_DUPLICATE" | "AUTH_EXPIRED" | "PROVIDER_ERROR" = "PROVIDER_ERROR";
   const apiCode = body?.errors?.[0]?.code;
   if (apiCode === 88 || apiCode === 429) code = "PROVIDER_RATE_LIMITED";
-  else if (apiCode === 32 || apiCode === 89) code = "AUTH_EXPIRED";
+  else if (status === 401 || apiCode === 32 || apiCode === 89) code = "AUTH_EXPIRED";
   else if (apiCode === 187 || apiCode === 321) code = "PROVIDER_DUPLICATE";
-  else if ([64, 120, 449, 450].includes(apiCode ?? -1)) code = "PROVIDER_PERMISSION";
+  else if (status === 403 || [64, 120, 449, 450].includes(apiCode ?? -1)) code = "PROVIDER_PERMISSION";
   throw new PublishingError({ code, stage, message, retryable });
 }
 
@@ -35,7 +35,7 @@ export class XProvider extends OAuth2SocialProvider {
   }
 
   override async getAccounts(exchanged: ExchangedToken): Promise<ProviderAccountRecord[]> {
-    const res = await fetch("https://api.twitter.com/2/users/me", {
+    const res = await fetch("https://api.x.com/2/users/me", {
       headers: {
         Authorization: `Bearer ${exchanged.accessToken}`,
         "Content-Type": "application/json",
@@ -43,7 +43,7 @@ export class XProvider extends OAuth2SocialProvider {
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => ({}))) as XErrorBody;
-      xError(body, false, "PROVIDER_AUTH");
+      xError(body, false, "PROVIDER_AUTH", res.status);
     }
     const body = (await res.json()) as { data?: { id?: string; username?: string; name?: string } };
     const id = String(body?.data?.id ?? "");
