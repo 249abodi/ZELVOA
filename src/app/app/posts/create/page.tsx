@@ -63,7 +63,7 @@ export default function CreatePostPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/v1/accounts");
+        const res = await fetch("/api/v1/accounts", { cache: "no-store" });
         if (!res.ok) throw new Error();
         const data = await res.json();
         if (cancelled) return;
