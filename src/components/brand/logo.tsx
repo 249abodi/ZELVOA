@@ -1,11 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/**
- * ZELVOA brand mark geometry.
- * Path data is the exact artwork from src/app/icon.svg — do not redraw.
- */
-export const ZELVOA_MARK_PATH = "M10 9h12l-12 14h12";
-export const ZELVOA_MARK_GRADIENT = ["#7c63f7", "#2563eb"] as const;
+export const ZELVOA_MARK_GRADIENT = ["#6d28d9", "#2563eb"] as const;
 
 export interface ZelvoaMarkProps {
   size?: number;
@@ -24,32 +19,27 @@ export function ZelvoaMark({
     <svg
       width={size}
       height={size}
-      viewBox="0 0 32 32"
+      viewBox="0 0 100 100"
       fill="none"
       className={cn("shrink-0", className)}
       {...(decorative ? { "aria-hidden": true } : { role: "img", "aria-label": label })}
     >
       <defs>
-        <linearGradient
-          id="zelvoa-brand-gradient"
-          x1="0"
-          y1="0"
-          x2="32"
-          y2="32"
-          gradientUnits="userSpaceOnUse"
-        >
+        <linearGradient id="zelvoa-mark-purple" x1="0" y1="0" x2="1" y2="1">
           <stop stopColor={ZELVOA_MARK_GRADIENT[0]} />
+          <stop offset="1" stopColor="#4f13b5" />
+        </linearGradient>
+        <linearGradient id="zelvoa-mark-blue" x1="0" y1="0" x2="1" y2="1">
+          <stop stopColor="#18b7f5" />
           <stop offset="1" stopColor={ZELVOA_MARK_GRADIENT[1]} />
         </linearGradient>
       </defs>
-      <rect width="32" height="32" rx="8" fill="url(#zelvoa-brand-gradient)" />
-      <path
-        d={ZELVOA_MARK_PATH}
-        stroke="#ffffff"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M4 21 29 1l35 11-16 14-20-7L4 34z" fill="url(#zelvoa-mark-blue)" />
+      <path d="M64 12 84 1v25L61 48 45 40z" fill="url(#zelvoa-mark-purple)" />
+      <path d="m29 19 19 7-18 21 23 8-15 16-22-11L4 53 25 31z" fill="#2563eb" />
+      <path d="m4 34 21-3-21 22z" fill="#18b7f5" />
+      <path d="m38 71 15-16 31 10v23L61 77 35 99 4 87l17-21z" fill="url(#zelvoa-mark-purple)" />
+      <path d="m53 55 8-7 23-22v25L53 78z" fill="url(#zelvoa-mark-blue)" />
     </svg>
   );
 }
