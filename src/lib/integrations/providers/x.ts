@@ -99,7 +99,7 @@ export class XProvider extends OAuth2SocialProvider {
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => ({}))) as XErrorBody;
-      xError(body, res.status >= 500 || res.status === 429, "PROVIDER_PUBLISH");
+      xError(body, res.status >= 500 || res.status === 429, "PROVIDER_PUBLISH", res.status);
     }
     const body = (await res.json()) as { data?: { id?: string } };
     const id = String(body?.data?.id ?? "");
@@ -120,10 +120,7 @@ export class XProvider extends OAuth2SocialProvider {
   }
 
   override async getPublishingStatus(providerPostId: string): Promise<PublishingStatusResult> {
-    const res = await fetch(`https://api.twitter.com/2/tweets/${providerPostId}?tweet.fields=id`, {
-      headers: { Authorization: `Bearer ${providerPostId}` },
-    });
-    if (res.ok) return { status: "PUBLISHED" };
+    void providerPostId;
     return { status: "PENDING" };
   }
 }
